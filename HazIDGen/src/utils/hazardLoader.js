@@ -1,10 +1,7 @@
 // Utility to load hazard data from Excel file
 export const loadHazardData = async () => {
   try {
-    // For now, we'll use hardcoded data that matches your Excel structure
-    // In a real implementation, this would read from the Excel file via Electron API
-    
-    const hazardData = [
+    const fallbackData = [
       {
         Category: 'Chemical',
         'Specific Hazard': 'Explosive',
@@ -67,22 +64,32 @@ export const loadHazardData = async () => {
       }
     ];
 
-    // If we're in Electron, try to read from actual Excel file
     if (window.electronAPI) {
-      try {
-        // This would be the path to your Excel file
-        const excelPath = './CMS_SafetyList_Preventive_Protective_Measures.xlsx';
-        const excelData = await window.electronAPI.readExcelFile(excelPath);
-        
-        if (excelData && excelData.length > 0) {
-          return excelData;
-        }
-      } catch (error) {
-        console.warn('Could not read Excel file, using fallback data:', error);
+      console.log('Electron API is available');
+      const excelPath = './src/assets/CMS_Safety-List_Preventive_Protective_Measures.xlsx';
+      const sheetName = 'ENG List of hazards';
+      const result = await window.electronAPI.readExcelFile(excelPath, sheetName, 1); // Header at row index 1 (Excel row 2)
+
+      if (result.success && Array.isArray(result.data)) {
+        const cleanedData = result.data
+          .filter(item =>
+            item && typeof item === 'object' &&
+            (item.Hazards || item['Specific Hazards'])
+          )
+          .map(item => ({
+            Category: item.Hazards?.trim() || '',
+            'Specific Hazard': item['Specific Hazards']?.trim() || '',
+            'Safety Measures': item['Safety Measures']?.trim() || '',
+            Icon: '❓'
+          }))
+          .filter(item => item.Category && item.Category !== 'Hazards');
+
+        console.log('Cleaned hazard data:', cleanedData);
+        return cleanedData;
       }
     }
 
-    return hazardData;
+    return fallbackData;
   } catch (error) {
     console.error('Error loading hazard data:', error);
     throw error;
@@ -92,7 +99,6 @@ export const loadHazardData = async () => {
 // Group hazards by category
 export const groupHazardsByCategory = (hazardData) => {
   const grouped = {};
-  
   hazardData.forEach(hazard => {
     const category = hazard.Category || hazard.category;
     if (!grouped[category]) {
@@ -100,26 +106,82 @@ export const groupHazardsByCategory = (hazardData) => {
     }
     grouped[category].push(hazard);
   });
-  
   return grouped;
 };
 
 // Get safety measures for a specific hazard
 export const getSafetyMeasures = (hazardData, category, specificHazard) => {
-  const hazard = hazardData.find(h => 
-    (h.Category || h.category) === category && 
+  const hazard = hazardData.find(h =>
+    (h.Category || h.category) === category &&
     (h['Specific Hazard'] || h.specificHazard) === specificHazard
   );
-  
   return hazard ? (hazard['Safety Measures'] || hazard.safetyMeasures) : '';
 };
 
 // Get icon for a specific hazard
 export const getHazardIcon = (hazardData, category, specificHazard) => {
-  const hazard = hazardData.find(h => 
-    (h.Category || h.category) === category && 
+  const hazard = hazardData.find(h =>
+    (h.Category || h.category) === category &&
     (h['Specific Hazard'] || h.specificHazard) === specificHazard
   );
-  
   return hazard ? (hazard.Icon || hazard.icon) : '❓';
+};
+
+// Load building and room data from Excel file
+export const loadBuildingRoomData = async () => {
+  try {
+    if (window.electronAPI) {
+      const excelPath = './src/assets/TSO Recommendation Info.xlsx';
+      const sheetName = 'Building Room Info';
+      const result = await window.electronAPI.readExcelFile(excelPath, sheetName, 0); // Header at row index 0
+
+      if (result.success && Array.isArray(result.data)) {
+        const cleanedData = result.data.filter(item =>
+          item && typeof item === 'object' &&
+          (item.Building || item.Room || item.building || item.room)
+        );
+        return cleanedData;
+      }
+    }
+
+    // Fallback data
+    return [
+      { Building: 'Building 32', Room: '32/4-B09' },
+      { Building: 'Building 32', Room: '32/4-B10' },
+      { Building: 'Building 40', Room: '40/4-A01' },
+      { Building: 'Building 40', Room: '40/4-A02' },
+      { Building: 'Building 42', Room: '42/3-C01' },
+      { Building: 'Building 42', Room: '42/3-C02' },
+      { Building: 'Building 44', Room: '44/2-D01' },
+    ];
+  } catch (error) {
+    console.error('Error loading building/room data:', error);
+    throw error;
+  }
+};
+
+// Get unique buildings from the data
+export const getUniqueBuildings = (buildingRoomData) => {
+  if (!Array.isArray(buildingRoomData)) return [];
+  const buildings = buildingRoomData
+    .map(item => {
+      const raw = item?.Building || item?.building;
+      return raw ? String(raw).trim() : null;
+    })
+    .filter(Boolean);
+  return [...new Set(buildings)].sort();
+};
+
+// Get rooms for a specific building
+export const getRoomsForBuilding = (buildingRoomData, building) => {
+  if (!Array.isArray(buildingRoomData) || !building) return [];
+  const buildingStr = String(building).trim();
+  return buildingRoomData
+    .filter(item => {
+      const itemBuilding = item?.Building || item?.building;
+      return String(itemBuilding).trim() === buildingStr;
+    })
+    .map(item => item.Room || item.room)
+    .filter(room => typeof room === 'string' && room.trim().length > 0)
+    .sort();
 };

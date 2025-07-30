@@ -1,76 +1,36 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import { groupHazardsByCategory } from '../utils/hazardLoader';
 
 const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => {
-  // Hazard categories with icons (using emoji as placeholders for now)
-  const hazardCategories = [
-    { 
-      name: 'Chemical', 
-      icon: '⚠️', 
-      description: 'All hazardous situations involving chemicals',
-      color: 'bg-red-50 border-red-200 hover:bg-red-100'
-    },
-    { 
-      name: 'Mechanical', 
-      icon: '⚙️', 
-      description: 'Dangerous situations involving moving parts',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-    },
-    { 
-      name: 'Non-Ionising Radiation', 
-      icon: '📡', 
-      description: 'Low-energy radiation (visible, infrared, UV, microwave)',
-      color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100'
-    },
-    { 
-      name: 'Ionising Radiation', 
-      icon: '☢️', 
-      description: 'High-energy radiation capable of ionization',
-      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100'
-    },
-    { 
-      name: 'Fire', 
-      icon: '🔥', 
-      description: 'Elements that can trigger uncontrolled fire',
-      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100'
-    },
-    { 
-      name: 'Electrical', 
-      icon: '⚡', 
-      description: 'Risk of contact with live parts, short circuits',
-      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
-    },
-    { 
-      name: 'Biological', 
-      icon: '🦠', 
-      description: 'Organisms or substances that threaten health',
-      color: 'bg-green-50 border-green-200 hover:bg-green-100'
-    },
-    { 
-      name: 'Work Conditions', 
-      icon: '🏗️', 
-      description: 'Working environment and ergonomics concerns',
-      color: 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-    },
-    { 
-      name: 'Emergency Preparedness', 
-      icon: '🚨', 
-      description: 'Elements affecting emergency response',
-      color: 'bg-red-50 border-red-200 hover:bg-red-100'
-    },
-    { 
-      name: 'Other Hazards', 
+  // Group hazards by category from the actual data
+  const groupedHazards = groupHazardsByCategory(hazardData);
+  
+  // Create hazard categories from the actual data
+  const hazardCategories = Object.keys(groupedHazards).map(category => {
+    // Map category names to icons and colors
+    const categoryConfig = {
+      'Chemical': { icon: '⚠️', color: 'bg-red-50 border-red-200 hover:bg-red-100' },
+      'Mechanical ': { icon: '⚙️', color: 'bg-blue-50 border-blue-200 hover:bg-blue-100' },
+      'Non ionizing radiation': { icon: '📡', color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' },
+      'Ionizing radiation': { icon: '☢️', color: 'bg-purple-50 border-purple-200 hover:bg-purple-100' },
+      'Fire': { icon: '🔥', color: 'bg-orange-50 border-orange-200 hover:bg-orange-100' },
+      'General': { icon: '🏗️', color: 'bg-gray-50 border-gray-200 hover:bg-gray-100' }
+    };
+    
+    const config = categoryConfig[category] || { 
       icon: '❓', 
-      description: 'Other hazards not listed above',
-      color: 'bg-slate-50 border-slate-200 hover:bg-slate-100'
-    },
-    { 
-      name: 'Environmental Protection', 
-      icon: '🌍', 
-      description: 'Activities interacting with the environment',
-      color: 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-    }
-  ];
+      color: 'bg-slate-50 border-slate-200 hover:bg-slate-100' 
+    };
+    
+    return {
+      name: category,
+      icon: config.icon,
+      description: `${groupedHazards[category].length} specific hazards`,
+      color: config.color,
+      hazards: groupedHazards[category]
+    };
+  });
 
   const handleHazardToggle = (hazardName) => {
     const isSelected = selectedHazards.includes(hazardName);

@@ -14,7 +14,7 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(__dirname, '../public/Logo CMS Safety.png')
+    icon: path.join(__dirname, './src/assets/Logo CMS Safety.png')
   });
 
   const isDev = !app.isPackaged;
@@ -55,34 +55,62 @@ app.on('window-all-closed', () => {
 });
 
 // IPC Handlers
-ipcMain.handle('read-excel-file', async (event, filePath) => {
+// ipcMain.handle('read-excel-file', async (event, filePath, sheetName, headerRow=0) => {
+//   console.log('Reading Excel file from:', filePath);
+//   try {
+//     // Try to read from the provided path first
+//     let fullPath = filePath;
+    
+//     // If it's a relative path, make it relative to the app directory
+//     if (!path.isAbsolute(filePath)) {
+//       const appPath = app.isPackaged ? process.resourcesPath : process.cwd();
+//       fullPath = path.join(appPath, filePath);
+//     }
+    
+//     console.log('Attempting to read Excel file from:', fullPath);
+    
+//     if (!fs.existsSync(fullPath)) {
+//       throw new Error(`File not found: ${fullPath}`);
+//     }
+    
+//     const workbook = XLSX.readFile(fullPath);
+//     console.log('Available sheets:', workbook.SheetNames);
+//     console.log('Requested sheet:', sheetName);
+    
+//     let worksheet;
+//     if (!workbook.Sheets[sheetName]) {
+//       console.log(`Sheet "${sheetName}" not found, trying first sheet: ${workbook.SheetNames[0]}`);
+//       worksheet = workbook.Sheets[workbook.SheetNames[0]];
+//     } else {
+//       worksheet = workbook.Sheets[sheetName];
+//     }
+//     // Use specified header row (default is 0 for first row)
+//     const data = XLSX.utils.sheet_to_json(worksheet, {
+//       header: headerRow, // Use specified header row
+//       range: headerRow   // Start from header row
+//     });
+    
+//     console.log('Excel file read successfully, rows:', data.length);
+//     console.log("excel data", data);
+//     return { success: true, data };
+//   } catch (error) {
+//     console.error('Error reading Excel file:', error);
+//     return { success: false, error: error.message };
+//   }
+// });
+
+
+ipcMain.handle('read-excel-file', async (event, filePath, sheetName, headerRow = 0) => {
   try {
-    // Try to read from the provided path first
-    let fullPath = filePath;
-    
-    // If it's a relative path, make it relative to the app directory
-    if (!path.isAbsolute(filePath)) {
-      const appPath = app.isPackaged ? process.resourcesPath : process.cwd();
-      fullPath = path.join(appPath, filePath);
-    }
-    
-    console.log('Attempting to read Excel file from:', fullPath);
-    
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`File not found: ${fullPath}`);
-    }
-    
-    const workbook = XLSX.readFile(fullPath);
-    // const sheetName = workbook.SheetNames[0];
-    const sheetName = "ENG List of hazards";
+    const workbook = XLSX.readFile(filePath);
     const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
-    
-    console.log('Excel file read successfully, rows:', data.length);
-    console.log(data);
+    const data = XLSX.utils.sheet_to_json(worksheet, {
+      range: headerRow,
+      defval: ''
+    });
     return { success: true, data };
   } catch (error) {
-    console.error('Error reading Excel file:', error);
+    console.error('Error reading Excel:', error);
     return { success: false, error: error.message };
   }
 });
@@ -147,9 +175,9 @@ ipcMain.handle('export-document', async (event, data) => {
     });
     
     if (filePath) {
-      // Load the document generator
-      const docxGenerator = require('../public/docx-generator.cjs');
-      await docxGenerator.generateDocument(data, filePath);
+      // Use the new hazard document generator
+      const hazardDocGenerator = require('../public/hazard-document-generator.cjs');
+      await hazardDocGenerator.generateHazardDocument(data, filePath);
       return { success: true, path: filePath };
     }
     return { success: false };

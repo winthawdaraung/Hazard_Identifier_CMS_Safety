@@ -17,6 +17,7 @@
     "start": "npm run electron-dev"
   },
   "dependencies": {
+    "docx": "^8.5.0",
     "docxtemplater": "^3.40.0",
     "file-saver": "^2.0.5",
     "lucide-react": "^0.263.1",
@@ -51,7 +52,8 @@
       "node_modules/**/*",
       "public/electron.js",
       "public/preload.js",
-      "public/docx-generator.js"
+      "public/docx-generator.js",
+      "public/hazard-document-generator.cjs"
     ],
     "mac": {
       "category": "public.app-category.productivity"

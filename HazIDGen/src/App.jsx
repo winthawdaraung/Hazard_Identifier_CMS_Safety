@@ -6,7 +6,7 @@ import HazardDetails from './components/HazardDetails';
 import DocumentUpload from './components/DocumentUpload';
 import ContactsInfo from './components/ContactsInfo';
 import ActionButtons from './components/ActionButtons';
-// import { loadHazardData } from './utils/hazardLoader';
+import { loadHazardData, loadBuildingRoomData } from './utils/hazardLoader';
 
 function App() {
   const [formData, setFormData] = useState({
@@ -18,6 +18,7 @@ function App() {
     participantCount: '',
     startDate: '',
     endDate: '',
+    location: '',
     buildingLocation: '',
     locationDetails: '',
     cernSupport: '',
@@ -42,6 +43,7 @@ function App() {
   });
 
   const [hazardData, setHazardData] = useState([]);
+  const [buildingRoomData, setBuildingRoomData] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -52,10 +54,14 @@ function App() {
   const loadHazards = async () => {
     try {
       setLoading(true);
-      const data = await loadHazardData();
-      setHazardData(data);
+      const [hazardData, buildingRoomData] = await Promise.all([
+        loadHazardData(),
+        loadBuildingRoomData()
+      ]);
+      setHazardData(hazardData);
+      setBuildingRoomData(buildingRoomData);
     } catch (error) {
-      console.error('Error loading hazard data:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -199,6 +205,7 @@ function App() {
             updateFormData={updateFormData}
             updateHazardDetails={updateHazardDetails}
             hazardData={hazardData}
+            buildingRoomData={buildingRoomData}
             selectedHazards={formData.selectedHazards}
             onHazardSelection={handleHazardSelection}
           />

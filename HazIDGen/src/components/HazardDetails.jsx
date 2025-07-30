@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { groupHazardsByCategory, getSafetyMeasures } from '../utils/hazardLoader';
 
 const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHazards }) => {
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -36,167 +37,28 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
     });
   };
 
-  // Mock hazard data structure based on your Excel file
-  const hazardSubCategories = {
-    'Chemical': [
-      { 
-        name: 'Explosive', 
-        icon: '💥',
-        recommendations: 'For each activity involving a hazardous chemical agent, carry out a risk assessment. Keep up-to-date inventory using CERES. Consult Safety Data Sheet (SDS).'
-      },
-      { 
-        name: 'Flammable', 
-        icon: '🔥',
-        recommendations: 'Ensure proper ventilation. Store in designated cabinets with metallic retention trays. Use safety cans if needed.'
-      },
-      { 
-        name: 'Oxidant', 
-        icon: '🔄',
-        recommendations: 'Ensure proper ventilation. Use Local Exhaust Ventilation (LEV) systems if needed.'
-      },
-      { 
-        name: 'Corrosive', 
-        icon: '🧪',
-        recommendations: 'Follow chemical agent guidelines and protective measures.'
-      },
-      { 
-        name: 'Irritant', 
-        icon: '😷',
-        recommendations: 'Ensure proper ventilation and use LEV systems if needed.'
-      },
-      { 
-        name: 'Cancerogenic, mutagenic, toxic for reproduction', 
-        icon: '☠️',
-        recommendations: 'Strict hygiene measures. Clean floors, walls and surfaces regularly. High standard of personal hygiene.'
-      },
-      { 
-        name: 'STOT (Specific Target Organ Toxicity)', 
-        icon: '🫁',
-        recommendations: 'Ensure proper ventilation and use LEV systems if needed.'
-      },
-      { 
-        name: 'Respiratory sensitizing', 
-        icon: '🫁',
-        recommendations: 'Ensure proper ventilation and maintain high personal hygiene standards.'
-      },
-      { 
-        name: 'Harmful if inhaled', 
-        icon: '🌬️',
-        recommendations: 'Ensure proper ventilation and use LEV systems if needed.'
-      },
-      { 
-        name: 'Acute toxicity', 
-        icon: '💀',
-        recommendations: 'Ensure proper ventilation and use LEV systems if needed.'
-      },
-      { 
-        name: 'Dangerous for aquatic environment', 
-        icon: '🐟',
-        recommendations: 'Safety inspection by HSE mandatory before commissioning new or modified installation.'
-      },
-      { 
-        name: 'Lead (ex: bricks)', 
-        icon: '🧱',
-        recommendations: 'Use Local Exhaust Ventilation for lead dust/fumes. Respect occupational exposure limits. Use appropriate PPE.'
-      },
-      { 
-        name: 'Asbestos', 
-        icon: '🚫',
-        recommendations: 'Notify HSE before asbestos removal work. Package waste to prevent dust dispersion. Label with appropriate pictogram.'
-      },
-      { 
-        name: 'Risk of low oxygen concentration', 
-        icon: '⚠️',
-        recommendations: 'Risk assessment for fixed detection. Use portable ODH detectors with proper training.'
-      },
-      { 
-        name: 'Risk of high CO₂ concentration', 
-        icon: '💨',
-        recommendations: 'Risk assessment for fixed detection. Use portable ODH detectors with proper training.'
-      },
-      { 
-        name: 'ATEX risk (potentially explosive atmosphere)', 
-        icon: '💥',
-        recommendations: 'Work in ATEX zones 0 and 20 prohibited. Use ATEX certified equipment. Complete fire permit for hot work.'
-      },
-      { 
-        name: 'Nanomaterials', 
-        icon: '🔬',
-        recommendations: 'Keep up-to-date inventory using CERES. Use nanomaterials warning signs. Respect exposure limits.'
-      }
-    ],
-    'Mechanical': [
-      { 
-        name: 'Use of lifting devices and accessories', 
-        icon: '🏗️',
-        recommendations: 'Keep area below lifting operations clear. Equipment must be periodically inspected. Personnel must be properly trained and authorized.'
-      },
-      { 
-        name: 'Using MEWP (Mobile Elevated Working Platforms)', 
-        icon: '🚧',
-        recommendations: 'Mandatory training for MEWP use. Fence off operation area. Use safety harness for category B MEWP.'
-      },
-      { 
-        name: 'Scaffolding', 
-        icon: '🔧',
-        recommendations: 'Proper commissioning and daily inspection required. No mixing of mechanical components. Report damage immediately.'
-      },
-      { 
-        name: 'Cryogenics', 
-        icon: '🧊',
-        recommendations: 'Equipment must be CE or π marked. Periodic inspection and requalification required. Proper identification and safety signs.'
-      },
-      { 
-        name: 'Pressure equipment', 
-        icon: '⚡',
-        recommendations: 'Installation per CERN standards. Periodic inspection required. Register in EAM database. Pressure tests outside working hours.'
-      },
-      { 
-        name: 'Machinery', 
-        icon: '⚙️',
-        recommendations: 'Must comply with CERN Safety Rules. HSE inspection for nonconformities. Proper training and authorization required.'
-      }
-    ],
-    'Fire': [
-      { 
-        name: 'Fuel (combustible material)', 
-        icon: '🔥',
-        recommendations: 'Keep workplace tidy. Evacuate waste regularly. Organize storage away from ignition sources.'
-      },
-      { 
-        name: 'Material', 
-        icon: '🧱',
-        recommendations: 'Materials must comply with CERN fire safety rules (IS41 for plastics, SSI-FS-2-1 for cables).'
-      },
-      { 
-        name: 'Possible ignition source', 
-        icon: '⚡',
-        recommendations: 'Keep ignition sources away from combustible material. Install monitoring systems with safety interlocks.'
-      },
-      { 
-        name: 'Hot work', 
-        icon: '🔥',
-        recommendations: 'Create CERN Fire Permit on IMPACT. Use IS37 to disable fire detection. Ensure proper grounding and fire protection.'
-      }
-    ],
-    'Electrical': [
-      { 
-        name: 'Electrical activity in laboratories', 
-        icon: '🔌',
-        recommendations: 'Authorization required for experimental areas. Complete electrical safety training. Use lock-out procedures.'
-      },
-      { 
-        name: 'Non-electrical activity in electrical environment', 
-        icon: '⚠️',
-        recommendations: 'Protect equipment against dust and damage. Personnel must be trained about electrical risks.'
-      },
-      { 
-        name: 'Electrical equipment design', 
-        icon: '⚙️',
-        recommendations: 'No live components present. Equipment must be grounded and inspected before use.'
-      }
-    ]
+  // Get hazard sub-categories from actual Excel data
+  const groupedHazards = groupHazardsByCategory(hazardData);
+  
+  // Map category names to icons
+  const categoryIcons = {
+    'Chemical': '⚠️',
+    'Mechanical ': '⚙️',
+    'Non ionizing radiation': '📡',
+    'Ionizing radiation': '☢️',
+    'Fire': '🔥',
+    'General': '🏗️'
   };
+  
+  // Create hazard sub-categories from actual data
+  const hazardSubCategories = {};
+  Object.keys(groupedHazards).forEach(category => {
+    hazardSubCategories[category] = groupedHazards[category].map(hazard => ({
+      name: hazard['Specific Hazard'] || hazard.specificHazard || 'Unknown Hazard',
+      icon: categoryIcons[category] || '❓',
+      recommendations: hazard['Safety Measures'] || hazard.safetyMeasures || 'No specific safety measures available.'
+    }));
+  });
 
   if (selectedHazards.length === 0) {
     return (

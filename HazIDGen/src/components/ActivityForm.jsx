@@ -1,9 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getUniqueBuildings, getRoomsForBuilding } from '../utils/hazardLoader';
 
-const ActivityForm = ({ formData, updateFormData }) => {
+const ActivityForm = ({ formData, updateFormData, buildingRoomData }) => {
+  const [buildings, setBuildings] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [showBuildingDropdown, setShowBuildingDropdown] = useState(false);
+  const [showRoomDropdown, setShowRoomDropdown] = useState(false);
+
+  useEffect(() => {
+    console.log('Building room data received:', buildingRoomData);
+    if (buildingRoomData && buildingRoomData.length > 0) {
+      console.log('Processing building room data:', buildingRoomData);
+      const uniqueBuildings = getUniqueBuildings(buildingRoomData);
+      console.log('Unique buildings:', uniqueBuildings);
+      setBuildings(uniqueBuildings);
+    } else {
+      console.log('No building room data available');
+      setBuildings([]);
+    }
+  }, [buildingRoomData]);
+
+  useEffect(() => {
+    if (formData.buildingLocation && buildingRoomData) {
+      console.log('Getting rooms for building:', formData.buildingLocation);
+      const buildingRooms = getRoomsForBuilding(buildingRoomData, formData.buildingLocation);
+      console.log('Rooms for building:', buildingRooms);
+      setRooms(buildingRooms);
+    }
+  }, [formData.buildingLocation, buildingRoomData]);
+
   const handleChange = (field, value) => {
     updateFormData(field, value);
   };
+
+  const handleBuildingChange = (value) => {
+    console.log('Building selected:', value);
+    handleChange('buildingLocation', value);
+    handleChange('locationDetails', ''); // Clear room when building changes
+    setShowBuildingDropdown(false);
+  };
+
+  const handleRoomChange = (value) => {
+    console.log('Room selected:', value);
+    handleChange('locationDetails', value);
+    setShowRoomDropdown(false);
+  };
+
+  const locationOptions = ['Meyrin', 'Prevessin', 'Point 5'];
 
   return (
     <div className="form-section">
@@ -92,26 +135,94 @@ const ActivityForm = ({ formData, updateFormData }) => {
       </div>
 
       {/* Location */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
+          <label className="form-label">Location *</label>
+          <select
+            className="form-input"
+            value={formData.location}
+            onChange={(e) => handleChange('location', e.target.value)}
+          >
+            <option value="">Select location</option>
+            {locationOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+        <div className="relative">
           <label className="form-label">Building Number and Zone *</label>
           <input
             type="text"
             className="form-input"
             value={formData.buildingLocation}
             onChange={(e) => handleChange('buildingLocation', e.target.value)}
+                         onFocus={() => {
+               console.log('Building input focused, showing dropdown');
+               setShowBuildingDropdown(true);
+             }}
+             onBlur={() => {
+               console.log('Building input blurred, hiding dropdown');
+               setTimeout(() => setShowBuildingDropdown(false), 200);
+             }}
             placeholder="e.g., Building 32"
           />
+                     {showBuildingDropdown && buildings.length > 0 && (
+             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+               <div className="p-2 text-sm text-gray-500 border-b">Available buildings ({buildings.length}):</div>
+               {buildings.map(building => (
+                 <div
+                   key={building}
+                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                   onClick={() => handleBuildingChange(building)}
+                 >
+                   {building}
+                 </div>
+               ))}
+             </div>
+           )}
+           {showBuildingDropdown && buildings.length === 0 && (
+             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
+               No buildings available
+             </div>
+           )}
         </div>
-        <div>
-          <label className="form-label">Location Details</label>
+        <div className="relative">
+          <label className="form-label">Room/Area</label>
           <input
             type="text"
             className="form-input"
             value={formData.locationDetails}
             onChange={(e) => handleChange('locationDetails', e.target.value)}
-            placeholder="e.g., 32/4-B09 Office"
+                         onFocus={() => {
+               console.log('Room input focused, showing dropdown');
+               setShowRoomDropdown(true);
+             }}
+             onBlur={() => {
+               console.log('Room input blurred, hiding dropdown');
+               setTimeout(() => setShowRoomDropdown(false), 200);
+             }}
+            placeholder="e.g., 32/4-B09"
+            disabled={!formData.buildingLocation}
           />
+                     {showRoomDropdown && rooms.length > 0 && formData.buildingLocation && (
+             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+               <div className="p-2 text-sm text-gray-500 border-b">Available rooms ({rooms.length}):</div>
+               {rooms.map(room => (
+                 <div
+                   key={room}
+                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                   onClick={() => handleRoomChange(room)}
+                 >
+                   {room}
+                 </div>
+               ))}
+             </div>
+           )}
+           {showRoomDropdown && rooms.length === 0 && formData.buildingLocation && (
+             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
+               No rooms available for this building
+             </div>
+           )}
         </div>
       </div>
 
