@@ -115,6 +115,18 @@ ipcMain.handle('read-excel-file', async (event, filePath, sheetName, headerRow =
   }
 });
 
+ipcMain.handle('get-excel-sheets', async (event, filePath) => {
+  try {
+    const workbook = XLSX.readFile(filePath);
+    return { success: true, sheets: workbook.SheetNames };
+  } catch (error) {
+    console.error('Error getting Excel sheets:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+
+
 ipcMain.handle('save-draft', async (event, data) => {
   try {
     const { filePath } = await dialog.showSaveDialog(mainWindow, {
@@ -146,7 +158,9 @@ ipcMain.handle('load-draft', async () => {
     
     if (filePaths.length > 0) {
       const data = fs.readFileSync(filePaths[0], 'utf8');
-      return { success: true, data: JSON.parse(data) };
+      const parsedData = JSON.parse(data);
+      console.log('Electron: Loaded draft data:', parsedData);
+      return { success: true, data: parsedData };
     }
     return { success: false };
   } catch (error) {
@@ -162,6 +176,61 @@ ipcMain.handle('select-file', async (event, options) => {
   } catch (error) {
     console.error('Error selecting file:', error);
     throw error;
+  }
+});
+
+// File storage handlers
+ipcMain.handle('save-uploaded-file', async (event, fileData) => {
+  try {
+    // Create uploads directory next to the app
+    let uploadsDir;
+    if (app.isPackaged) {
+      // If app is packaged (distributed), use the app directory
+      uploadsDir = path.join(process.resourcesPath, '..', 'uploads');
+    } else {
+      // If app is in development, use the project root
+      uploadsDir = path.join(process.cwd(), 'uploads');
+    }
+    
+    // Create uploads directory if it doesn't exist
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${fileData.name}`;
+    const filePath = path.join(uploadsDir, fileName);
+    
+    // Convert base64 to buffer and save file
+    const buffer = Buffer.from(fileData.data, 'base64');
+    fs.writeFileSync(filePath, buffer);
+    
+    return { 
+      success: true, 
+      savedPath: filePath,
+      fileName: fileName
+    };
+  } catch (error) {
+    console.error('Error saving uploaded file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-uploads-directory', async () => {
+  try {
+    let uploadsDir;
+    if (app.isPackaged) {
+      // If app is packaged (distributed), use the app directory
+      uploadsDir = path.join(process.resourcesPath, '..', 'uploads');
+    } else {
+      // If app is in development, use the project root
+      uploadsDir = path.join(process.cwd(), 'uploads');
+    }
+    return { success: true, path: uploadsDir };
+  } catch (error) {
+    console.error('Error getting uploads directory:', error);
+    return { success: false, error: error.message };
   }
 });
 

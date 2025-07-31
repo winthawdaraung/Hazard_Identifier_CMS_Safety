@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import ActivityForm from './components/ActivityForm';
+
 import HazardSelection from './components/HazardSelection';
 import HazardDetails from './components/HazardDetails';
 import DocumentUpload from './components/DocumentUpload';
 import ContactsInfo from './components/ContactsInfo';
 import ActionButtons from './components/ActionButtons';
 import { loadHazardData, loadBuildingRoomData } from './utils/hazardLoader';
+import { getTodayForInput } from './utils/dateUtils';
 
 function App() {
   const [formData, setFormData] = useState({
@@ -16,11 +18,11 @@ function App() {
     creatorDepartment: '',
     responsiblePerson: '',
     participantCount: '',
-    startDate: '',
+    startDate: getTodayForInput(),
     endDate: '',
     location: '',
-    buildingLocation: '',
-    locationDetails: '',
+    building: '',
+    room: '',
     cernSupport: '',
     cmsSupport: '',
     
@@ -50,6 +52,8 @@ function App() {
   useEffect(() => {
     loadHazards();
   }, []);
+
+
 
   const loadHazards = async () => {
     try {
@@ -117,7 +121,41 @@ function App() {
       if (window.electronAPI) {
         const result = await window.electronAPI.loadDraft();
         if (result.success) {
-          setFormData(result.data);
+          // Ensure all required fields are present with default values
+          const loadedData = {
+            // Activity Information
+            title: result.data.title || '',
+            creatorName: result.data.creatorName || '',
+            creatorDepartment: result.data.creatorDepartment || '',
+            responsiblePerson: result.data.responsiblePerson || '',
+            participantCount: result.data.participantCount || '',
+            startDate: result.data.startDate || getTodayForInput(),
+            endDate: result.data.endDate || '',
+            location: result.data.location || '',
+            building: result.data.building || '',
+            room: result.data.room || '',
+            cernSupport: result.data.cernSupport || '',
+            cmsSupport: result.data.cmsSupport || '',
+            
+            // Documents
+            safetyDocuments: result.data.safetyDocuments || '',
+            technicalDocuments: result.data.technicalDocuments || '',
+            otherDocuments: result.data.otherDocuments || '',
+            hseSupport: result.data.hseSupport || '',
+            referenceDocuments: result.data.referenceDocuments || '',
+            
+            // Activity Description
+            activityDescription: result.data.activityDescription || '',
+            
+            // Hazards
+            selectedHazards: result.data.selectedHazards || [],
+            hazardDetails: result.data.hazardDetails || {},
+            
+            // Uploaded files
+            uploadedFiles: result.data.uploadedFiles || []
+          };
+          setFormData(loadedData);
+          
           alert('Draft loaded successfully!');
         }
       }
@@ -142,6 +180,8 @@ function App() {
       alert('Error exporting document: ' + error.message);
     }
   };
+
+
 
   if (loading) {
     return (

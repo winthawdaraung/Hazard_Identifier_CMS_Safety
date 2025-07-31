@@ -10,25 +10,68 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
   const hazardCategories = Object.keys(groupedHazards).map(category => {
     // Map category names to icons and colors
     const categoryConfig = {
-      'Chemical': { icon: '⚠️', color: 'bg-red-50 border-red-200 hover:bg-red-100' },
-      'Mechanical ': { icon: '⚙️', color: 'bg-blue-50 border-blue-200 hover:bg-blue-100' },
-      'Non ionizing radiation': { icon: '📡', color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' },
-      'Ionizing radiation': { icon: '☢️', color: 'bg-purple-50 border-purple-200 hover:bg-purple-100' },
-      'Fire': { icon: '🔥', color: 'bg-orange-50 border-orange-200 hover:bg-orange-100' },
-      'General': { icon: '🏗️', color: 'bg-gray-50 border-gray-200 hover:bg-gray-100' }
+      'General': {
+        icon: '📋',
+        color: 'bg-gray-100 border-gray-300 hover:bg-gray-200'
+      },
+      'Chemical': {
+        icon: '🧪',
+        color: 'bg-red-100 border-red-300 hover:bg-red-200'
+      },
+      'Mechanical': {
+        icon: '🛠️',
+        color: 'bg-blue-100 border-blue-300 hover:bg-blue-200'
+      },
+      'Non ionizing radiation': {
+        icon: '📡',
+        color: 'bg-yellow-100 border-yellow-300 hover:bg-yellow-200'
+      },
+      'Ionizing radiation': {
+        icon: '☢️',
+        color: 'bg-indigo-100 border-indigo-300 hover:bg-indigo-200'
+      },
+      'Fire': {
+        icon: '🔥',
+        color: 'bg-orange-100 border-orange-300 hover:bg-orange-200'
+      },
+      'Electrical': {
+        icon: '🔌',
+        color: 'bg-purple-100 border-purple-300 hover:bg-purple-200'
+      },
+      'Biological': {
+        icon: '🦠',
+        color: 'bg-green-100 border-green-300 hover:bg-green-200'
+      },
+      'Work conditions': {
+        icon: '🏗️',
+        color: 'bg-teal-100 border-teal-300 hover:bg-teal-200'
+      },
+      'Emergency Preparedness': {
+        icon: '🚨',
+        color: 'bg-pink-100 border-pink-300 hover:bg-pink-200'
+      },
+      'Environmental Protection': {
+        icon: '🌿',
+        color: 'bg-lime-100 border-lime-300 hover:bg-lime-200'
+      }
     };
+    
     
     const config = categoryConfig[category] || { 
       icon: '❓', 
       color: 'bg-slate-50 border-slate-200 hover:bg-slate-100' 
     };
     
+    // Get HSE link from the first hazard in this category (assuming all hazards in a category have the same HSE link)
+    const hseLink = groupedHazards[category][0]?.['HSE Link'] || '';
+    
     return {
       name: category,
       icon: config.icon,
       description: `${groupedHazards[category].length} specific hazards`,
       color: config.color,
-      hazards: groupedHazards[category]
+      hazards: groupedHazards[category],
+      hseLink: hseLink
     };
   });
 
@@ -43,8 +86,7 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
       
       <div className="mb-6">
         <p className="text-gray-600 mb-4">
-          Select all hazards that apply to your activity. According to <strong>ISO 45001</strong>, 
-          a hazard is defined as a source capable of causing injury and ill health.
+          Select all hazards that apply to your activity. According to <strong><a href="https://www.iso.org/obp/ui/fr/#iso:std:iso:45001:ed-1:v1:en"></a>ISO 45001</strong>, a hazard is defined as a source capable of causing injury and ill health. Hazards can include sources with the potential to cause harm or hazardous situations, or circumstances with the potential for exposure leading to injury and ill health.  
         </p>
         <p className="text-sm text-gray-500">
           Click on each hazard category that is relevant to your activity. You'll provide detailed 
@@ -80,11 +122,23 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
                 {hazard.description}
               </p>
               
-              {/* Reference link placeholder */}
+              {/* HSE Link */}
               <div className="mt-3 text-center">
-                <span className="inline-block bg-white px-2 py-1 rounded text-xs text-cern-blue font-medium">
-                  Link HSE
-                </span>
+                {hazard.hseLink ? (
+                  <a
+                    href={hazard.hseLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block bg-white px-2 py-1 rounded text-xs text-cern-blue font-medium hover:bg-cern-blue hover:text-white transition-colors cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Link HSE
+                  </a>
+                ) : (
+                  <span className="inline-block bg-gray-100 px-2 py-1 rounded text-xs text-gray-500 font-medium">
+                    No Link
+                  </span>
+                )}
               </div>
             </div>
           );

@@ -1,457 +1,171 @@
-const { Document, Paragraph, TextRun, AlignmentType, Table, TableRow, TableCell, WidthType } = require('docx');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
+
+function formatDateToDDMMYYYY(dateString) {
+  if (!dateString) return "N/A";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+  } catch (error) {
+    return dateString;
+  }
+}
+
+function generateTextFallback(data) {
+  let content = "HAZARD IDENTIFICATION REPORT\n\n";
+  
+  // Activity Information
+  content += "1. ACTIVITY INFORMATION\n";
+  content += `Title: ${data.title || 'N/A'}\n`;
+  content += `Responsible Person: ${data.responsiblePerson || 'N/A'}\n`;
+  content += `Participant Count: ${data.participantCount || 'N/A'}\n`;
+  content += `Start Date: ${formatDateToDDMMYYYY(data.startDate)}\n`;
+  content += `End Date: ${formatDateToDDMMYYYY(data.endDate)}\n`;
+  content += `Location: ${data.building || ''}/${data.location || ''}\n\n`;
+  
+  content += `Activity Description: ${data.activityDescription || 'No description provided'}\n\n`;
+  
+  // Hazard Details
+  content += "2. HAZARD DETAILS BY CATEGORY\n";
+  if (data.hazardDetails && typeof data.hazardDetails === 'object') {
+    Object.keys(data.hazardDetails).forEach(category => {
+      const categoryDetails = data.hazardDetails[category];
+      if (categoryDetails && typeof categoryDetails === 'object') {
+        const selectedHazards = Object.keys(categoryDetails).filter(
+          hazard => categoryDetails[hazard] && categoryDetails[hazard].selected
+        );
+        if (selectedHazards.length > 0) {
+          content += `\n${category}:\n`;
+          selectedHazards.forEach(hazard => {
+            const hazardData = categoryDetails[hazard];
+            content += `  - ${hazard}: ${hazardData.details || 'N/A'} | Recommendations: ${hazardData.recommendations || 'N/A'}\n`;
+          });
+        }
+      }
+    });
+  } else {
+    content += "No hazard details provided.\n";
+  }
+  
+  // Supporting Documents
+  content += "\n3. SUPPORTING DOCUMENTS\n";
+  content += `Safety Documents: ${data.safetyDocuments || 'N/A'}\n`;
+  content += `Technical Documents: ${data.technicalDocuments || 'N/A'}\n`;
+  content += `Other Documents: ${data.otherDocuments || 'N/A'}\n`;
+  content += `Reference Documents: ${data.referenceDocuments || 'N/A'}\n`;
+  
+  // Contacts
+  content += "\n4. CONTACTS AND USEFUL LINKS\n";
+  content += "• CERN HSE: Website\n";
+  content += "• Contacts CMS Safety: group of CMS Safety referents\n";
+  content += "• CMS RP: CMS radiation protection information\n";
+  content += "• CMS Safety Training and Access Requirements: all mandatory and recommended training\n";
+  content += "• CERN Learning Hub: for the catalogue and registration to available training courses\n";
+  content += "• ADaMS: for access requests\n";
+  content += "• IMPACT: tool for the declaration of an activity\n";
+  content += "• TREC: system for tracing potentially radioactive equipment\n";
+  content += "• EDH SIT: for Storage and/or internal transport requests\n";
+  content += "• Cms-safety@cern.ch: group of CMS Safety (TC, LEXGLIMOS, DLEXGLIMOS)\n";
+  content += "• Cms-safety-team@cern.ch: group of CMS Safety Team (LEXGLIMOS Office)\n";
+  content += "• Cms-rso@cern.ch: group of CMS Radiation Safety Officers (RSO, DRSO)\n";
+  
+  content += `\nGenerated on: ${formatDateToDDMMYYYY(new Date())} at ${new Date().toLocaleTimeString()}`;
+  
+  return content;
+}
 
 async function generateHazardDocument(data, outputPath) {
   try {
-    const doc = new Document({
-      sections: [{
-        properties: {
-          page: {
-            size: {
-              width: 12240,
-              height: 15840
-            },
-            margin: {
-              top: 1440,
-              right: 1440,
-              bottom: 1440,
-              left: 1440
-            }
-          }
-        }
-      }]
-    });
-
-    // Title
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "HAZARD IDENTIFICATION REPORT",
-            bold: true,
-            size: 32
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: {
-          after: 400
-        }
-      })
-    );
-
-    // Activity Information Section
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "1. ACTIVITY INFORMATION",
-            bold: true,
-            size: 24
-          })
-        ],
-        spacing: {
-          before: 400,
-          after: 200
-        }
-      })
-    );
-
-    // Activity details table
-    const activityTable = new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Activity Title", bold: true })] })],
-              width: { size: 30, type: WidthType.PERCENTAGE }
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.title || 'N/A' })] })],
-              width: { size: 70, type: WidthType.PERCENTAGE }
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Creator", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.creatorName || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Department", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.creatorDepartment || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Responsible Person", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.responsiblePerson || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Location", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: `${data.location || 'N/A'} - ${data.buildingLocation || 'N/A'} - ${data.locationDetails || 'N/A'}` })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Activity Period", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: `${data.startDate || 'N/A'} to ${data.endDate || 'N/A'}` })] })]
-            })
-          ]
-        })
-      ]
-    });
-
-    doc.addTable(activityTable);
-
-    // Activity Description
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Activity Description:",
-            bold: true
-          })
-        ],
-        spacing: { before: 400 }
-      })
-    );
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: data.activityDescription || 'No description provided'
-          })
-        ],
-        spacing: { after: 400 }
-      })
-    );
-
-    // Selected Hazards Section
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "2. SELECTED HAZARD CATEGORIES",
-            bold: true,
-            size: 24
-          })
-        ],
-        spacing: {
-          before: 400,
-          after: 200
-        }
-      })
-    );
-
-    if (data.selectedHazards && data.selectedHazards.length > 0) {
-      data.selectedHazards.forEach(hazard => {
-        doc.addParagraph(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: `• ${hazard}`
-              })
-            ],
-            spacing: { after: 100 }
-          })
-        );
-      });
-    } else {
-      doc.addParagraph(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: "No hazards selected"
-            })
-          ],
-          spacing: { after: 400 }
-        })
-      );
-    }
-
-    // Hazard Details Section
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "3. HAZARD DETAILS",
-            bold: true,
-            size: 24
-          })
-        ],
-        spacing: {
-          before: 400,
-          after: 200
-        }
-      })
-    );
-
-    // Add selected hazard details
-    if (data.hazardDetails && Object.keys(data.hazardDetails).length > 0) {
-      Object.keys(data.hazardDetails).forEach(category => {
-        const categoryDetails = data.hazardDetails[category];
-        const selectedHazards = Object.keys(categoryDetails).filter(hazard => 
-          categoryDetails[hazard].selected
-        );
-
-        if (selectedHazards.length > 0) {
-          // Category header
-          doc.addParagraph(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: category,
-                  bold: true,
-                  size: 20
-                })
-              ],
-              spacing: { before: 300, after: 200 }
-            })
-          );
-
-          // Add each selected hazard
-          selectedHazards.forEach(hazard => {
-            const hazardData = categoryDetails[hazard];
-            
-            doc.addParagraph(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: `• ${hazard}`,
-                    bold: true
-                  })
-                ],
-                spacing: { before: 200 }
-              })
-            );
-
-            if (hazardData.details) {
-              doc.addParagraph(
-                new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: `  Details: ${hazardData.details}`
-                    })
-                  ],
-                  spacing: { after: 200 }
-                })
-              );
-            }
-          });
-        }
-      });
-    } else {
-      doc.addParagraph(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: "No hazard details provided"
-            })
-          ],
-          spacing: { after: 400 }
-        })
-      );
-    }
-
-    // Documents Section
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "4. SUPPORTING DOCUMENTS",
-            bold: true,
-            size: 24
-          })
-        ],
-        spacing: {
-          before: 400,
-          after: 200
-        }
-      })
-    );
-
-    const documentsTable = new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Document Type", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Details", bold: true })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Safety Documents" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.safetyDocuments || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Technical Documents" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.technicalDocuments || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Other Documents" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.otherDocuments || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "HSE Support" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.hseSupport || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Reference Documents" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.referenceDocuments || 'N/A' })] })]
-            })
-          ]
-        })
-      ]
-    });
-
-    doc.addTable(documentsTable);
-
-    // Contacts Section
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "5. CONTACTS",
-            bold: true,
-            size: 24
-          })
-        ],
-        spacing: {
-          before: 400,
-          after: 200
-        }
-      })
-    );
-
-    const contactsTable = new Table({
-      width: {
-        size: 100,
-        type: WidthType.PERCENTAGE
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Contact Type", bold: true })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "Details", bold: true })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "CERN Support" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.cernSupport || 'N/A' })] })]
-            })
-          ]
-        }),
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: "CMS Support" })] })]
-            }),
-            new TableCell({
-              children: [new Paragraph({ children: [new TextRun({ text: data.cmsSupport || 'N/A' })] })]
-            })
-          ]
-        })
-      ]
-    });
-
-    doc.addTable(contactsTable);
-
-    // Footer with generation info
-    doc.addParagraph(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 600 }
-      })
-    );
-
-    // Save the document
-    const buffer = await doc.save();
-    fs.writeFileSync(outputPath, buffer);
+    console.log('🔄 Using Python script for DOCX generation...');
     
-    console.log('Hazard identification document generated successfully:', outputPath);
-    return true;
+    // Create temporary JSON file for Python script
+    const tempJsonPath = path.join(path.dirname(outputPath), 'temp_data.json');
+    fs.writeFileSync(tempJsonPath, JSON.stringify(data, null, 2));
+    
+    // Call Python script
+    return new Promise((resolve, reject) => {
+      const pythonScript = path.join(__dirname, 'generate_docx.py');
+      
+      console.log('📝 Calling Python script:', pythonScript);
+      console.log('📄 Input JSON:', tempJsonPath);
+      console.log('📄 Output DOCX:', outputPath);
+      console.log('🐍 Python command: python', pythonScript, tempJsonPath, outputPath);
+      
+      // Check if Python script exists
+      if (!fs.existsSync(pythonScript)) {
+        console.error('❌ Python script not found:', pythonScript);
+        reject(new Error(`Python script not found: ${pythonScript}`));
+        return;
+      }
+      
+      // Check if temp JSON was created
+      if (!fs.existsSync(tempJsonPath)) {
+        console.error('❌ Temp JSON file not created:', tempJsonPath);
+        reject(new Error(`Temp JSON file not created: ${tempJsonPath}`));
+        return;
+      }
+      
+      const pythonProcess = spawn('python', [pythonScript, tempJsonPath, outputPath], {
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      let stdout = '';
+      let stderr = '';
+      
+      pythonProcess.stdout.on('data', (data) => {
+        stdout += data.toString();
+        console.log('🐍 Python stdout:', data.toString().trim());
+      });
+      
+      pythonProcess.stderr.on('data', (data) => {
+        stderr += data.toString();
+        console.log('🐍 Python stderr:', data.toString().trim());
+      });
+      
+      pythonProcess.on('close', (code) => {
+        // Clean up temporary JSON file
+        try {
+          fs.unlinkSync(tempJsonPath);
+        } catch (error) {
+          console.log('⚠️ Could not delete temp JSON file:', error.message);
+        }
+        
+        if (code === 0) {
+          console.log('✅ Python script completed successfully');
+          resolve(true);
+        } else {
+          console.error('❌ Python script failed with code:', code);
+          console.error('❌ Python stderr:', stderr);
+          console.error('❌ Python stdout:', stdout);
+          reject(new Error(`Python script failed with code ${code}: ${stderr}`));
+        }
+      });
+      
+      pythonProcess.on('error', (error) => {
+        console.error('❌ Failed to start Python script:', error);
+        reject(error);
+      });
+    });
+    
   } catch (error) {
-    console.error('Error generating hazard document:', error);
-    throw error;
+    console.error('❌ Error in Python-based generation:', error);
+    
+    // Fallback to text file
+    try {
+      console.log('📝 Falling back to text generation...');
+      const textContent = generateTextFallback(data);
+      const textPath = outputPath.replace('.docx', '.txt');
+      fs.writeFileSync(textPath, textContent);
+      console.log('✅ Text document generated as fallback:', textPath);
+      return true;
+    } catch (fallbackError) {
+      console.error('❌ All document generation methods failed:', fallbackError);
+      throw error;
+    }
   }
 }
 
 module.exports = {
   generateHazardDocument
-}; 
+};

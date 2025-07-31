@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, CheckCircle, FolderOpen } from 'lucide-react';
 
 const DocumentUpload = ({ formData, updateFormData }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -25,15 +25,76 @@ const DocumentUpload = ({ formData, updateFormData }) => {
     }
   };
 
-  const handleFiles = (files) => {
-    const newFiles = Array.from(files).map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      file: file,
-      status: 'uploaded'
-    }));
+  const handleFiles = async (files) => {
+    const newFiles = [];
+    
+    for (const file of files) {
+      try {
+        // Convert file to base64
+        const reader = new FileReader();
+        const fileData = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        // Extract base64 data (remove data:application/pdf;base64, prefix)
+        const base64Data = fileData.split(',')[1];
+        
+        // Save file to local storage
+        if (window.electronAPI) {
+          const result = await window.electronAPI.saveUploadedFile({
+            name: file.name,
+            data: base64Data,
+            type: file.type,
+            size: file.size
+          });
+          
+          if (result.success) {
+            newFiles.push({
+              id: Date.now() + Math.random(),
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              savedPath: result.savedPath,
+              fileName: result.fileName,
+              status: 'saved'
+            });
+          } else {
+            console.error('Failed to save file:', result.error);
+            // Still add to list but mark as failed
+            newFiles.push({
+              id: Date.now() + Math.random(),
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              status: 'failed',
+              error: result.error
+            });
+          }
+        } else {
+          // Fallback for web version
+          newFiles.push({
+            id: Date.now() + Math.random(),
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file: file,
+            status: 'uploaded'
+          });
+        }
+      } catch (error) {
+        console.error('Error processing file:', error);
+        newFiles.push({
+          id: Date.now() + Math.random(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          status: 'failed',
+          error: error.message
+        });
+      }
+    }
     
     const updatedFiles = [...uploadedFiles, ...newFiles];
     setUploadedFiles(updatedFiles);
@@ -58,6 +119,20 @@ const DocumentUpload = ({ formData, updateFormData }) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const openUploadsDirectory = async () => {
+    try {
+      if (window.electronAPI) {
+        const result = await window.electronAPI.getUploadsDirectory();
+        if (result.success) {
+          // Open the directory in file explorer
+          await window.electronAPI.openExternal(`file://${result.path}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error opening uploads directory:', error);
+    }
   };
 
   return (
@@ -160,7 +235,19 @@ const DocumentUpload = ({ formData, updateFormData }) => {
         {/* Uploaded Files List */}
         {uploadedFiles.length > 0 && (
           <div className="border-t pt-6">
-            <h4 className="text-md font-medium text-gray-800 mb-4">Uploaded Files</h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-md font-medium text-gray-800">Uploaded Files</h4>
+              {window.electronAPI && (
+                <button
+                  onClick={openUploadsDirectory}
+                  className="flex items-center px-3 py-1 text-sm text-cern-blue hover:text-cern-blue-dark"
+                  title="Open uploads folder"
+                >
+                  <FolderOpen className="w-4 h-4 mr-1" />
+                  Open Folder
+                </button>
+              )}
+            </div>
             <div className="space-y-3">
               {uploadedFiles.map((file) => (
                 <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -169,11 +256,20 @@ const DocumentUpload = ({ formData, updateFormData }) => {
                     <div>
                       <p className="text-sm font-medium text-gray-800">{file.name}</p>
                       <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                          </div>
-                        </div>
+                      {file.savedPath && (
+                        <p className="text-xs text-green-600">Saved to: {file.savedPath}</p>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex items-center space-x-2">
+                    {file.status === 'saved' && (
+                      <CheckCircle className="w-4 h-4 text-green-500" title="File saved successfully" />
+                    )}
                     {file.status === 'uploaded' && (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <CheckCircle className="w-4 h-4 text-blue-500" title="File uploaded" />
+                    )}
+                    {file.status === 'failed' && (
+                      <AlertCircle className="w-4 h-4 text-red-500" title={`Failed: ${file.error}`} />
                     )}
                     <button
                       onClick={() => removeFile(file.id)}
@@ -181,7 +277,7 @@ const DocumentUpload = ({ formData, updateFormData }) => {
                     >
                       Remove
                     </button>
-                      </div>
+                  </div>
                 </div>
               ))}
             </div>

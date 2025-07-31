@@ -14,7 +14,7 @@ const ActionButtons = ({
     switch (currentStep) {
       case 1:
         return formData.title && formData.creatorName && formData.creatorDepartment && 
-               formData.responsiblePerson && formData.startDate && formData.buildingLocation;
+               formData.responsiblePerson && formData.startDate && formData.building;
       case 2:
         return formData.selectedHazards && formData.selectedHazards.length > 0;
       default:
@@ -29,7 +29,7 @@ const ActionButtons = ({
       formData.creatorDepartment,
       formData.responsiblePerson,
       formData.startDate,
-      formData.buildingLocation,
+      formData.building,
       formData.activityDescription
     ];
     
@@ -78,6 +78,8 @@ const ActionButtons = ({
             <Upload className="w-4 h-4 mr-2" />
             Load Draft
           </button>
+
+
         </div>
 
         {/* Right side - Next/Export button */}
