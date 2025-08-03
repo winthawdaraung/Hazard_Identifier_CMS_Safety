@@ -4,6 +4,11 @@ import { groupHazardsByCategory, getSafetyMeasures } from '../utils/hazardLoader
 
 const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHazards }) => {
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [newCustomHazard, setNewCustomHazard] = useState({
+    name: '',
+    details: '',
+    recommendations: ''
+  });
 
   // Auto-expand categories that are selected
   useEffect(() => {
@@ -44,6 +49,24 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
       [field]: value
     });
   };
+
+  const handleAddCustomHazard = () => {
+    if (newCustomHazard.name.trim()) {
+      const hazardId = `custom_${Date.now()}`;
+      updateHazardDetails('Other Hazards', hazardId, {
+        selected: true,
+        name: newCustomHazard.name.trim(),
+        details: newCustomHazard.details.trim(),
+        recommendations: newCustomHazard.recommendations.trim() || 'Please specify safety measures for this hazard.'
+      });
+      setNewCustomHazard({ name: '', details: '', recommendations: '' });
+    }
+  };
+
+  const handleRemoveCustomHazard = (hazardId) => {
+    updateHazardDetails('Other Hazards', hazardId, undefined);
+  };
+
 
   // Get hazard sub-categories from actual Excel data
   const groupedHazards = groupHazardsByCategory(hazardData);
@@ -93,6 +116,10 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
     'Environmental Protection': {
       icon: '🌿',
       color: 'bg-lime-100 border-lime-300 hover:bg-lime-200'
+    },
+    'Other Hazards': {
+      icon: '📝',
+      color: 'bg-purple-100 border-purple-300 hover:bg-purple-200'
     }
   };
   
@@ -109,6 +136,19 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
       defaultRecommendations: hazard['Safety Measures'] || hazard.safetyMeasures || 'Standard safety measures apply'
     }));
   });
+
+  // Handle "Other Hazards" category with custom hazards
+  if (selectedHazards.includes('Other Hazards')) {
+    // Get existing custom hazards from formData
+    const existingCustomHazards = formData.hazardDetails['Other Hazards'] || {};
+    hazardSubCategories['Other Hazards'] = Object.keys(existingCustomHazards).map(hazardId => ({
+      id: hazardId,
+      name: existingCustomHazards[hazardId]?.name || 'Custom Hazard',
+      icon: '📝',
+      recommendations: existingCustomHazards[hazardId]?.recommendations || 'Please specify safety measures for this hazard.',
+      defaultRecommendations: 'Please specify safety measures for this hazard.'
+    }));
+  }
 
 
 
@@ -154,9 +194,56 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
 
               {isExpanded && (
                 <div className="p-6 space-y-6">
+                  {hazardCategory === 'Other Hazards' && (
+                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <h4 className="font-medium text-gray-800 mb-4">Add Custom Hazard</h4>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="form-label">Hazard Name *</label>
+                          <input
+                            type="text"
+                            className="form-input"
+                            value={newCustomHazard.name}
+                            onChange={(e) => setNewCustomHazard(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Enter hazard name..."
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">Details</label>
+                          <textarea
+                            className="form-textarea"
+                            rows={2}
+                            value={newCustomHazard.details}
+                            onChange={(e) => setNewCustomHazard(prev => ({ ...prev, details: e.target.value }))}
+                            placeholder="Describe the hazard details..."
+                          />
+                        </div>
+                        <div>
+                          <label className="form-label">Recommendations</label>
+                          <textarea
+                            className="form-textarea"
+                            rows={2}
+                            value={newCustomHazard.recommendations}
+                            onChange={(e) => setNewCustomHazard(prev => ({ ...prev, recommendations: e.target.value }))}
+                            placeholder="Enter safety recommendations..."
+                          />
+                        </div>
+                        <button
+                          onClick={handleAddCustomHazard}
+                          disabled={!newCustomHazard.name.trim()}
+                          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Add Hazard
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {subHazards.map((subHazard) => {
-                    const isSelected = formData.hazardDetails[hazardCategory]?.[subHazard.id]?.selected || false;
-                    const details = formData.hazardDetails[hazardCategory]?.[subHazard.id]?.details || '';
+                    const hazardDetails = formData.hazardDetails[hazardCategory]?.[subHazard.id] || {};
+                    const isSelected = hazardDetails.selected || false;
+                    const details = hazardDetails.details || '';
+                    const recommendations = hazardDetails.recommendations || subHazard.recommendations;
                     
                     return (
                       <div key={subHazard.id} className={`border rounded-lg p-4 ${isSelected ? 'border-cern-blue bg-cern-blue/5' : 'border-gray-200'}`}>
@@ -168,9 +255,20 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
                             onChange={(e) => handleSubHazardToggle(hazardCategory, subHazard.id, e.target.checked)}
                           />
                           <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className="text-lg">{subHazard.icon}</span>
-                              <h4 className="font-medium text-gray-800">{subHazard.name}</h4>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg">{subHazard.icon}</span>
+                                <h4 className="font-medium text-gray-800">{subHazard.name}</h4>
+                              </div>
+                              {hazardCategory === 'Other Hazards' && (
+                                <button
+                                  onClick={() => handleRemoveCustomHazard(subHazard.id)}
+                                  className="text-red-500 hover:text-red-700 transition-colors p-1"
+                                  title="Remove this hazard"
+                                >
+                                  ×
+                                </button>
+                              )}
                             </div>
                             
                             {isSelected && (
@@ -180,7 +278,7 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
                                    <textarea
                                      className="form-textarea"
                                      rows={3}
-                                     value={formData.hazardDetails[hazardCategory]?.[subHazard.id]?.details || ''}
+                                     value={details}
                                      onChange={(e) => handleDetailsChange(hazardCategory, subHazard.id, 'details', e.target.value)}
                                      placeholder="Provide specific details about this hazard in your activity..."
                                    />
@@ -191,7 +289,7 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
                                    <textarea
                                      className="form-textarea"
                                      rows={3}
-                                     value={formData.hazardDetails[hazardCategory]?.[subHazard.id]?.recommendations ?? subHazard.recommendations}
+                                     value={recommendations}
                                      onChange={(e) => handleDetailsChange(hazardCategory, subHazard.id, 'recommendations', e.target.value)}
                                      placeholder="Add specific recommendations for your situation..."
                                    />

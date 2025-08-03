@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getUniqueBuildings, getRoomsForBuilding } from '../utils/hazardLoader';
 import { formatDateToDDMMYYYY, formatDateForInput } from '../utils/dateUtils';
 
@@ -24,10 +24,9 @@ const ActivityForm = ({ formData, updateFormData, buildingRoomData }) => {
     }
   }, [formData?.building, buildingRoomData]);
 
-  const handleChange = (field, value) => {
-    // Simple, direct call - no extra logic
+  const handleChange = useCallback((field, value) => {
     updateFormData(field, value);
-  };
+  }, [updateFormData]);
 
   const handleBuildingChange = (value) => {
     handleChange('building', value);
@@ -44,6 +43,44 @@ const ActivityForm = ({ formData, updateFormData, buildingRoomData }) => {
 
   return (
     <div className="form-section">
+      <h2 className="text-xl font-semibold text-gray-800 mb-6">Document Header Information</h2>
+      
+      {/* Document Header Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label className="form-label">Reference</label>
+          <input
+            type="text"
+            className="form-input"
+            value={formData?.reference || ''}
+            onChange={(e) => handleChange('reference', e.target.value)}
+            placeholder="e.g., CMS-SFT-2025-001"
+          />
+        </div>
+        <div>
+          <label className="form-label">EDMS</label>
+          <input
+            type="text"
+            className="form-input"
+            value={formData?.edms || ''}
+            onChange={(e) => handleChange('edms', e.target.value)}
+            placeholder="EDMS document number"
+          />
+        </div>
+        <div>
+          <label className="form-label">Validity</label>
+          <input
+            type="text"
+            className="form-input"
+            value={formData?.validity || ''}
+            onChange={(e) => handleChange('validity', e.target.value)}
+            placeholder="e.g., Until further notice"
+          />
+        </div>
+      </div>
+
+      <div className="border-b border-gray-200 mb-6"></div>
+
       <h2 className="text-xl font-semibold text-gray-800 mb-6">Activity Summary Information</h2>
 
       {/* Title */}
@@ -55,6 +92,7 @@ const ActivityForm = ({ formData, updateFormData, buildingRoomData }) => {
           value={formData?.title || ''}
           onChange={(e) => handleChange('title', e.target.value)}
           placeholder="Enter the name of the specific activity"
+          autoComplete="off"
         />
       </div>
 

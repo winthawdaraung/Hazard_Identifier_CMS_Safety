@@ -2,19 +2,20 @@
   "name": "hazid-generator",
   "version": "1.0.0",
   "description": "CERN CMS Safety Hazard Identification Generator",
+  "author": "Win Thawdar Aung @ CMS Safety Team Summer Student 2025",
   "main": "electron/main.cjs",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron-dev-simple": "cross-env NODE_ENV=development electron .",
-    "electron-build": "npm run build && electron-builder",
-    "dist": "npm run build && electron-builder --publish=never",
-    "start": "npm run electron-dev"
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
+    "package-win": "npm run build && npx electron-packager . \"HazID Generator\" --platform=win32 --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.ico\"",
+    "package-mac": "npm run build && npx electron-packager . \"HazID Generator\" --platform=darwin --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.icns\"",
+    "package-linux": "npm run build && npx electron-packager . \"HazID Generator\" --platform=linux --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
+    "package-all": "npm run build && npx electron-packager . \"HazID Generator\" --all --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
+    "start": "npm run build && npm run electron-dev-simple"
   },
   "dependencies": {
     "docx": "^7.3.0",
@@ -35,34 +36,10 @@
     "concurrently": "^8.2.2",
     "cross-env": "^10.0.0",
     "electron": "^25.3.1",
-    "electron-builder": "^24.6.3",
+    "electron-packager": "^17.1.2",
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
     "vite": "^4.4.5",
     "wait-on": "^7.0.1"
-  },
-  "build": {
-    "appId": "com.cern.hazid-generator",
-    "productName": "HazID Generator",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "dist/**/*",
-      "node_modules/**/*",
-      "public/electron.js",
-      "public/preload.js",
-      "public/docx-generator.js",
-      "public/hazard-document-generator.cjs"
-    ],
-    "mac": {
-      "category": "public.app-category.productivity"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
   }
 }

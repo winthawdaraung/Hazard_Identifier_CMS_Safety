@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { groupHazardsByCategory } from '../utils/hazardLoader';
 
-const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => {
+const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection, formData, updateFormData }) => {
   // Group hazards by category from the actual data
   const groupedHazards = groupHazardsByCategory(hazardData);
   
@@ -53,6 +53,10 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
       'Environmental Protection': {
         icon: '🌿',
         color: 'bg-lime-100 border-lime-300 hover:bg-lime-200'
+      },
+      'Other Hazards': {
+        icon: '📝',
+        color: 'bg-purple-100 border-purple-300 hover:bg-purple-200'
       }
     };
     
@@ -62,8 +66,10 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
       color: 'bg-slate-50 border-slate-200 hover:bg-slate-100' 
     };
     
-    // Get HSE link from the first hazard in this category (assuming all hazards in a category have the same HSE link)
-    const hseLink = groupedHazards[category][0]?.['HSE Link'] || '';
+    // Get HSE link and definition from the first hazard in this category
+    const firstHazard = groupedHazards[category][0];
+    const hseLink = firstHazard?.['HSE Link'] || '';
+    const definition = firstHazard?.['Definition'] || '';
     
     return {
       name: category,
@@ -71,14 +77,27 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
       description: `${groupedHazards[category].length} specific hazards`,
       color: config.color,
       hazards: groupedHazards[category],
-      hseLink: hseLink
+      hseLink: hseLink,
+      definition: definition
     };
+  });
+
+  // Add "Other Hazards" as a special category with Excel-style properties
+  hazardCategories.push({
+    name: 'Other Hazards',
+    icon: '📝',
+    description: 'Other hazards specific to your activity',
+    color: 'bg-purple-100 border-purple-300 hover:bg-purple-200',
+    hazards: [],
+    hseLink: 'https://hse.cern/safety-management/risk-management', // Example HSE link
+    definition: 'Hazards not covered by the standard categories above but specific to your activity'
   });
 
   const handleHazardToggle = (hazardName) => {
     const isSelected = selectedHazards.includes(hazardName);
     onHazardSelection(hazardName, !isSelected);
   };
+
 
   return (
     <div className="form-section">
@@ -118,9 +137,21 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
               </div>
               
               {/* Description */}
-              <p className="text-xs text-gray-600 text-center leading-tight">
+              <p className="text-xs text-gray-600 text-center leading-tight mb-2">
                 {hazard.description}
               </p>
+              
+              {/* Definition */}
+              <div className="text-xs text-gray-500 text-center leading-tight">
+                <details className="group">
+                  <summary className="cursor-pointer hover:text-cern-blue">
+                    View Definition
+                  </summary>
+                  <div className="mt-2 p-2 bg-white/50 rounded text-left">
+                    {hazard.definition || 'Definition not available'}
+                  </div>
+                </details>
+              </div>
               
               {/* HSE Link */}
               <div className="mt-3 text-center">
@@ -143,10 +174,11 @@ const HazardSelection = ({ hazardData, selectedHazards, onHazardSelection }) => 
             </div>
           );
         })}
-      </div>
+              </div>
 
-      {/* Selected hazards summary */}
-      {selectedHazards.length > 0 && (
+
+        {/* Selected hazards summary */}
+        {selectedHazards.length > 0 && (
         <div className="mt-8 p-4 bg-cern-blue/5 border border-cern-blue/20 rounded-lg">
           <h3 className="font-semibold text-gray-800 mb-2">Selected Hazards ({selectedHazards.length})</h3>
           <div className="flex flex-wrap gap-2">

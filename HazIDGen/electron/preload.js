@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectFile: (options) => ipcRenderer.invoke('select-file', options),
   exportDocument: (data) => ipcRenderer.invoke('export-document', data),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  showMessageDialog: (options) => ipcRenderer.invoke('show-message-dialog', options),
   
   // File storage APIs
   saveUploadedFile: (fileData) => ipcRenderer.invoke('save-uploaded-file', fileData),

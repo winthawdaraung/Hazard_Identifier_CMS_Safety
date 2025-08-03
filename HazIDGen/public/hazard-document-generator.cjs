@@ -15,6 +15,15 @@ function formatDateToDDMMYYYY(dateString) {
 function generateTextFallback(data) {
   let content = "HAZARD IDENTIFICATION REPORT\n\n";
   
+  // Document Header
+  if (data.reference || data.edms || data.validity) {
+    content += "DOCUMENT HEADER\n";
+    if (data.reference) content += `Reference: ${data.reference}\n`;
+    if (data.edms) content += `EDMS: ${data.edms}\n`;
+    if (data.validity) content += `Validity: ${data.validity}\n`;
+    content += "\n";
+  }
+  
   // Activity Information
   content += "1. ACTIVITY INFORMATION\n";
   content += `Title: ${data.title || 'N/A'}\n`;
@@ -77,7 +86,7 @@ function generateTextFallback(data) {
 
 async function generateHazardDocument(data, outputPath) {
   try {
-    console.log('🔄 Using Python script for DOCX generation...');
+    console.log(' Using Python script for DOCX generation...');
     
     // Create temporary JSON file for Python script
     const tempJsonPath = path.join(path.dirname(outputPath), 'temp_data.json');
@@ -87,21 +96,21 @@ async function generateHazardDocument(data, outputPath) {
     return new Promise((resolve, reject) => {
       const pythonScript = path.join(__dirname, 'generate_docx.py');
       
-      console.log('📝 Calling Python script:', pythonScript);
-      console.log('📄 Input JSON:', tempJsonPath);
-      console.log('📄 Output DOCX:', outputPath);
-      console.log('🐍 Python command: python', pythonScript, tempJsonPath, outputPath);
+      console.log('Calling Python script:', pythonScript);
+      console.log('Input JSON:', tempJsonPath);
+      console.log('Output DOCX:', outputPath);
+      console.log('Python command: python', pythonScript, tempJsonPath, outputPath);
       
       // Check if Python script exists
       if (!fs.existsSync(pythonScript)) {
-        console.error('❌ Python script not found:', pythonScript);
+        console.error(' Python script not found:', pythonScript);
         reject(new Error(`Python script not found: ${pythonScript}`));
         return;
       }
       
       // Check if temp JSON was created
       if (!fs.existsSync(tempJsonPath)) {
-        console.error('❌ Temp JSON file not created:', tempJsonPath);
+        console.error(' Temp JSON file not created:', tempJsonPath);
         reject(new Error(`Temp JSON file not created: ${tempJsonPath}`));
         return;
       }
@@ -115,12 +124,12 @@ async function generateHazardDocument(data, outputPath) {
       
       pythonProcess.stdout.on('data', (data) => {
         stdout += data.toString();
-        console.log('🐍 Python stdout:', data.toString().trim());
+        console.log('Python stdout:', data.toString().trim());
       });
       
       pythonProcess.stderr.on('data', (data) => {
         stderr += data.toString();
-        console.log('🐍 Python stderr:', data.toString().trim());
+        console.log('Python stderr:', data.toString().trim());
       });
       
       pythonProcess.on('close', (code) => {
@@ -128,39 +137,39 @@ async function generateHazardDocument(data, outputPath) {
         try {
           fs.unlinkSync(tempJsonPath);
         } catch (error) {
-          console.log('⚠️ Could not delete temp JSON file:', error.message);
+          console.log('Could not delete temp JSON file:', error.message);
         }
         
         if (code === 0) {
-          console.log('✅ Python script completed successfully');
+          console.log('Python script completed successfully');
           resolve(true);
         } else {
-          console.error('❌ Python script failed with code:', code);
-          console.error('❌ Python stderr:', stderr);
-          console.error('❌ Python stdout:', stdout);
+          console.error(' Python script failed with code:', code);
+          console.error(' Python stderr:', stderr);
+          console.error(' Python stdout:', stdout);
           reject(new Error(`Python script failed with code ${code}: ${stderr}`));
         }
       });
       
       pythonProcess.on('error', (error) => {
-        console.error('❌ Failed to start Python script:', error);
+        console.error(' Failed to start Python script:', error);
         reject(error);
       });
     });
     
   } catch (error) {
-    console.error('❌ Error in Python-based generation:', error);
+    console.error(' Error in Python-based generation:', error);
     
     // Fallback to text file
     try {
-      console.log('📝 Falling back to text generation...');
+      console.log(' Falling back to text generation...');
       const textContent = generateTextFallback(data);
       const textPath = outputPath.replace('.docx', '.txt');
       fs.writeFileSync(textPath, textContent);
-      console.log('✅ Text document generated as fallback:', textPath);
+      console.log(' Text document generated as fallback:', textPath);
       return true;
     } catch (fallbackError) {
-      console.error('❌ All document generation methods failed:', fallbackError);
+      console.error(' All document generation methods failed:', fallbackError);
       throw error;
     }
   }

@@ -48,14 +48,25 @@ export const loadHazardData = async () => {
 
       if (result.success && Array.isArray(result.data)) {
         const hseLinksMap = {};
+        const hazardDefinitionsMap = {};
         if (hseLinksResult && hseLinksResult.success && Array.isArray(hseLinksResult.data)) {
+          console.log('HSE Sheet data:', hseLinksResult.data);
           hseLinksResult.data.forEach(item => {
-            const catKey = String(item['Hazard Category'] || '').trim().toLowerCase();
-            const link = String(item['HSE Link(s)'] || '').trim();
-            if (catKey && link) {
-              hseLinksMap[catKey] = link;
+            console.log('Processing HSE item:', item);
+            const catKey = String(item['Hazard Category'] || item['Category'] || '').trim().toLowerCase();
+            const definition = String(item['Definition'] || '').trim();
+            const link = String(item['HSE Link(s)'] || item['HSE Link'] || '').trim();
+            if (catKey) {
+              if (link) {
+                hseLinksMap[catKey] = link;
+              }
+              if (definition) {
+                hazardDefinitionsMap[catKey] = definition;
+              }
             }
           });
+          console.log('HSE Links Map:', hseLinksMap);
+          console.log('Hazard Definitions Map:', hazardDefinitionsMap);
         }
 
         const groupedData = {};
@@ -76,6 +87,7 @@ export const loadHazardData = async () => {
                   'Specific Hazard': specificHazard,
                   'Safety Measures': safetyMeasures,
                   'HSE Link': hseLinksMap[lowerKey] || '',
+                  'Definition': hazardDefinitionsMap[lowerKey] || '',
                   Icon: '❓'
                 };
               } else {
@@ -88,8 +100,70 @@ export const loadHazardData = async () => {
 
         const cleanedData = Object.values(groupedData);
 
+        // Add fallback definitions if none were loaded from Excel
+        if (Object.keys(hazardDefinitionsMap).length === 0) {
+          console.log('No definitions found in Excel, using fallback definitions');
+          const fallbackDefinitions = {
+            'chemical': 'All hazardous situations involving chemicals (product whether marketed or not, of natural origin or manufactured, used or emitted in different forms (solid, powder, liquid, gas, dust, smoke, fog, particles, fibers, etc.)), in the conditions of use and/or exposure.',
+            'mechanical': 'All dangerous situations involving moving parts that can come into contact with a part of the human body and cause injury. These elements are often related to equipment or machines but can also relate to tools, parts, loads, projections of materials or fluids.',
+            'non ionizing radiation': 'A type of low-energy radiation that does not have enough energy to remove an electron (negative particle) from an atom or molecule. Non-ionizing radiation includes visible, infrared and ultraviolet light; microwave; radio waves; and radio frequency energy from cell phones.',
+            'ionizing radiation': 'Ionizing radiation consists of charged particles (e.g. positive or negative electrons, protons or other heavy ions and/or uncharged particles (e.g. photons or neutrons) capable of causing process ionization primary or secondary Ionizing radiation can be direct and indirect.',
+            'fire': 'Set of dangerous situations involving elements that can trigger an uncontrolled fire, the main characteristic of which is to spread.',
+            'electrical': 'All dangerous situations involving the risk of contact, direct or otherwise, with a bare live part, the risk of short circuits, and the risk of electric arcing. Its consequences are electrification, electrocution, fire, explosion ...',
+            'biological': 'All dangerous situations involving organisms or substances derived from an organism which represent a threat to health. This includes wastes, microorganisms, viruses or toxins.',
+            'work conditions': 'All dangerous situations concerning the entire working environment as well as ergonomics.',
+            'emergency preparedness': 'Set of dangerous situations involving all elements that may have an impact on the response to emergency situations',
+            'environmental protection': 'Activity interacting or likely to interact with the environment (environment in which an organism operates, including air, water, soil, natural resources, flora, fauna, humans and their interrelationships)'
+          };
+          
+          // Add fallback definitions to the map
+          Object.keys(fallbackDefinitions).forEach(key => {
+            hazardDefinitionsMap[key] = fallbackDefinitions[key];
+          });
+        }
+
         console.log('Cleaned hazard data:', cleanedData);
-        return cleanedData;
+        
+        // Create hazard definitions for DOCX generation
+        const hazardDefinitions = [];
+        const sectionMap = {
+          'chemical': '§ 4.1',
+          'mechanical': '§ 4.2', 
+          'non ionizing radiation': '§ 4.3',
+          'ionizing radiation': '§ 4.4',
+          'fire': '§ 4.5',
+          'electrical': '§ 4.6',
+          'biological': '§ 4.7',
+          'work conditions': '§ 4.8',
+          'emergency preparedness': '§ 4.9',
+          'environmental protection': '§ 5'
+        };
+        
+        // Create definitions from the loaded data
+        Object.keys(hazardDefinitionsMap).forEach(category => {
+          const section = sectionMap[category.toLowerCase()] || '§ 4.10';
+          const definition = hazardDefinitionsMap[category];
+          const link = hseLinksMap[category] || 'Link HSE';
+          
+          // Normalize "Other hazards" to match frontend expectation
+          let hazardName = category.charAt(0).toUpperCase() + category.slice(1);
+          if (category.toLowerCase() === 'other hazards') {
+            hazardName = 'Other Hazards';  // Match frontend naming
+          }
+          
+          hazardDefinitions.push({
+            section: section,
+            hazard: hazardName,
+            definition: definition,
+            ref: link
+          });
+        });
+        
+        // Add the definitions to the return data
+        return {
+          hazardData: cleanedData,
+          hazardDefinitions: hazardDefinitions
+        };
       }
     }
 
@@ -204,4 +278,112 @@ export const getRoomsForBuilding = (buildingRoomData, building) => {
     .map(item => item.Room || item.room)
     .filter(room => typeof room === 'string' && room.trim().length > 0)
     .sort();
+};
+
+// Load contact data from Excel file
+export const loadContactData = async () => {
+  try {
+    if (window.electronAPI) {
+      const possiblePaths = [
+        './data/excel/TSO Recommendation Info.xlsx',
+        './src/assets/TSO Recommendation Info.xlsx',
+        './public/TSO Recommendation Info.xlsx'
+      ];
+
+      let webContactsResult = null;
+      let emailContactsResult = null;
+      
+      for (const excelPath of possiblePaths) {
+        try {
+          console.log(`Trying to load contact data from: ${excelPath}`);
+          
+          // Load Web Contacts sheet
+          try {
+            webContactsResult = await window.electronAPI.readExcelFile(excelPath, 'Web Contacts', 0);
+            if (webContactsResult && webContactsResult.success && Array.isArray(webContactsResult.data)) {
+              console.log(`Successfully loaded Web Contacts from: ${excelPath}`);
+            }
+          } catch (error) {
+            console.log(`Failed to load Web Contacts from ${excelPath}:`, error.message);
+          }
+
+          // Load Email Contacts sheet
+          try {
+            emailContactsResult = await window.electronAPI.readExcelFile(excelPath, 'Email Contacts', 0);
+            if (emailContactsResult && emailContactsResult.success && Array.isArray(emailContactsResult.data)) {
+              console.log(`Successfully loaded Email Contacts from: ${excelPath}`);
+            }
+          } catch (error) {
+            console.log(`Failed to load Email Contacts from ${excelPath}:`, error.message);
+          }
+
+          // If both sheets loaded successfully from this path, break
+          if (webContactsResult?.success && emailContactsResult?.success) {
+            break;
+          }
+        } catch (error) {
+          console.log(`Failed to access file ${excelPath}:`, error.message);
+          continue;
+        }
+      }
+
+      // Process and return the data
+      const contactData = {
+        webContacts: [],
+        emailContacts: []
+      };
+
+      // Process Web Contacts
+      if (webContactsResult && webContactsResult.success && Array.isArray(webContactsResult.data)) {
+        contactData.webContacts = webContactsResult.data
+          .filter(item => item && typeof item === 'object' && item.Title && item.URL)
+          .map(item => ({
+            title: String(item.Title || '').trim(),
+            url: String(item.URL || '').trim(),
+            description: String(item.Description || '').trim()
+          }));
+        console.log(`Processed ${contactData.webContacts.length} web contacts`);
+      }
+
+      // Process Email Contacts
+      if (emailContactsResult && emailContactsResult.success && Array.isArray(emailContactsResult.data)) {
+        contactData.emailContacts = emailContactsResult.data
+          .filter(item => item && typeof item === 'object' && item.Email)
+          .map(item => ({
+            email: String(item.Email || '').trim(),
+            description: String(item.Description || '').trim()
+          }));
+        console.log(`Processed ${contactData.emailContacts.length} email contacts`);
+      }
+
+      return contactData;
+    }
+
+    // Fallback data if Excel cannot be loaded - show error indicator
+    console.error('Could not load contact data from Excel file. Using fallback contacts.');
+    return {
+      webContacts: [
+        {
+          title: "⚠️ CERN HSE (Fallback)",
+          url: "https://hse.cern/",
+          description: "Website - Using fallback data (Excel not loaded)"
+        },
+        {
+          title: "⚠️ Contacts CMS Safety (Fallback)",
+          url: "https://cmssafety.web.cern.ch/who-are-we",
+          description: "group of CMS Safety referents - Using fallback data"
+        }
+      ],
+      emailContacts: [
+        {
+          email: "Cms-safety@cern.ch",
+          description: "⚠️ Fallback: group of CMS Safety (TC, LEXGLIMOS, DLEXGLIMOS)"
+        }
+      ],
+      isUsingFallback: true
+    };
+  } catch (error) {
+    console.error('Error loading contact data:', error);
+    throw error;
+  }
 };

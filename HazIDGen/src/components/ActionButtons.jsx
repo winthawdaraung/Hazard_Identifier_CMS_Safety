@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Save, Upload, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Save, Upload, Download, RotateCcw } from 'lucide-react';
 
 const ActionButtons = ({ 
   currentStep, 
@@ -8,6 +8,7 @@ const ActionButtons = ({
   onSaveDraft, 
   onLoadDraft, 
   onExport, 
+  onReset,
   formData 
 }) => {
   const canGoNext = () => {
@@ -79,7 +80,14 @@ const ActionButtons = ({
             Load Draft
           </button>
 
-
+          <button
+            onClick={onReset}
+            className="flex items-center px-4 py-2 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition-colors"
+            title="Reset all form data"
+          >
+            <RotateCcw className="w-4 h-4 mr-2" />
+            Reset
+          </button>
         </div>
 
         {/* Right side - Next/Export button */}

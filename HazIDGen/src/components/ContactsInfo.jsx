@@ -1,69 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink, Mail, Globe, AlertTriangle } from 'lucide-react';
+import { loadContactData } from '../utils/hazardLoader';
 
 const ContactsInfo = ({ formData }) => {
-  const contacts = [
-    {
-      title: "CERN HSE",
-      url: "https://hse.cern/",
-      description: "Website"
-    },
-    {
-      title: "Contacts CMS Safety",
-      url: "https://cmssafety.web.cern.ch/who-are-we",
-      description: "group of CMS Safety referents"
-    },
-    {
-      title: "CMS RP",
-      url: "https://cmssafety.web.cern.ch/radiation-protection",
-      description: "CMS radiation protection information"
-    },
-    {
-      title: "CMS Safety Training and Access Requirements",
-      url: "https://cmssafety.web.cern.ch/training-and-access-requirements",
-      description: "all mandatory and recommended training"
-    },
-    {
-      title: "CERN Learning Hub",
-      url: "https://lms.cern.ch/",
-      description: "for the catalogue and registration to available training courses"
-    },
-    {
-      title: "ADaMS",
-      url: "http://adams.web.cern.ch/adams/",
-      description: "for access requests"
-    },
-    {
-      title: "IMPACT",
-      url: "https://impact.cern.ch/impact/secure/",
-      description: "tool for the declaration of an activity"
-    },
-    {
-      title: "TREC",
-      url: "https://cmmsx.cern.ch/SSO/trec/",
-      description: "system for tracing potentially radioactive equipment"
-    },
-    {
-      title: "EDH SIT",
-      url: "https://edh.cern.ch/Document/SupplyChain/SIT",
-      description: "for Storage and/or internal transport requests"
-    }
-  ];
+  const [contactData, setContactData] = useState({
+    webContacts: [],
+    emailContacts: [],
+    isUsingFallback: false
+  });
+  const [loading, setLoading] = useState(true);
 
-  const emailContacts = [
-    {
-      email: "Cms-safety@cern.ch",
-      description: "group of CMS Safety (TC, LEXGLIMOS, DLEXGLIMOS)"
-    },
-    {
-      email: "Cms-safety-team@cern.ch",
-      description: "group of CMS Safety Team (LEXGLIMOS Office)"
-    },
-    {
-      email: "Cms-rso@cern.ch",
-      description: "group of CMS Radiation Safety Officers (RSO, DRSO)"
-    }
-  ];
+  useEffect(() => {
+    const loadContacts = async () => {
+      try {
+        const data = await loadContactData();
+        setContactData(data);
+      } catch (error) {
+        console.error('Error loading contacts:', error);
+        // Keep the default empty arrays if loading fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContacts();
+  }, []);
 
   const openLink = (url) => {
     if (window.electronAPI) {
@@ -80,7 +41,7 @@ const ContactsInfo = ({ formData }) => {
       formData.creatorDepartment,
       formData.responsiblePerson,
       formData.startDate,
-      formData.buildingLocation,
+      formData.building,  // Fixed: use 'building' instead of 'buildingLocation'
       formData.activityDescription
     ];
     
@@ -160,7 +121,12 @@ const ContactsInfo = ({ formData }) => {
             </div>
             <div>
               <span className="text-gray-600">Location:</span>
-              <span className="ml-2 font-medium">{formData.buildingLocation || 'Not specified'}</span>
+              <span className="ml-2 font-medium">
+                {formData.building && formData.room 
+                  ? `${formData.building}/${formData.room}` 
+                  : formData.building || 'Not specified'
+                }
+              </span>
             </div>
             <div>
               <span className="text-gray-600">Hazards Selected:</span>
@@ -174,28 +140,51 @@ const ContactsInfo = ({ formData }) => {
       <div className="form-section">
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Contacts and Useful Links</h2>
         
+        {/* Error Warning for Fallback Data */}
+        {contactData.isUsingFallback && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <div>
+                <h4 className="font-medium text-amber-800">Using Fallback Contact Data</h4>
+                <p className="text-sm text-amber-700">
+                  Could not load contact information from Excel file. Please check that the Excel file is accessible and contains "Web Contacts" and "Email Contacts" sheets.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Website Links */}
         <div className="mb-8">
           <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
             <Globe className="w-5 h-5 mr-2" />
             Useful Links
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {contacts.map((contact, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <button
-                  onClick={() => openLink(contact.url)}
-                  className="flex items-start space-x-3 w-full text-left"
-                >
-                  <ExternalLink className="w-4 h-4 text-cern-blue mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-medium text-cern-blue hover:underline">{contact.title}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{contact.description}</p>
-                  </div>
-                </button>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-4">
+              <p className="text-gray-600">Loading contacts...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {contactData.webContacts.map((contact, index) => (
+                <div key={index} className={`border rounded-lg p-4 hover:shadow-md transition-shadow ${
+                  contactData.isUsingFallback ? 'border-amber-200 bg-amber-50' : 'border-gray-200'
+                }`}>
+                  <button
+                    onClick={() => openLink(contact.url)}
+                    className="flex items-start space-x-3 w-full text-left"
+                  >
+                    <ExternalLink className="w-4 h-4 text-cern-blue mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-cern-blue hover:underline">{contact.title}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{contact.description}</p>
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Email Contacts */}
@@ -204,24 +193,32 @@ const ContactsInfo = ({ formData }) => {
             <Mail className="w-5 h-5 mr-2" />
             Email Contacts
           </h3>
-          <div className="space-y-3">
-            {emailContacts.map((contact, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-4 h-4 text-cern-blue" />
-                  <div>
-                    <button
-                      onClick={() => openLink(`mailto:${contact.email}`)}
-                      className="font-medium text-cern-blue hover:underline"
-                    >
-                      {contact.email}
-                    </button>
-                    <p className="text-sm text-gray-600">{contact.description}</p>
+          {loading ? (
+            <div className="text-center py-4">
+              <p className="text-gray-600">Loading email contacts...</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {contactData.emailContacts.map((contact, index) => (
+                <div key={index} className={`border rounded-lg p-4 ${
+                  contactData.isUsingFallback ? 'border-amber-200 bg-amber-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-center space-x-3">
+                    <Mail className="w-4 h-4 text-cern-blue" />
+                    <div>
+                      <button
+                        onClick={() => openLink(`mailto:${contact.email}`)}
+                        className="font-medium text-cern-blue hover:underline"
+                      >
+                        {contact.email}
+                      </button>
+                      <p className="text-sm text-gray-600">{contact.description}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Guidelines */}

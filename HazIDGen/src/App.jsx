@@ -7,11 +7,16 @@ import HazardDetails from './components/HazardDetails';
 import DocumentUpload from './components/DocumentUpload';
 import ContactsInfo from './components/ContactsInfo';
 import ActionButtons from './components/ActionButtons';
-import { loadHazardData, loadBuildingRoomData } from './utils/hazardLoader';
+import { loadHazardData, loadBuildingRoomData, loadContactData } from './utils/hazardLoader';
 import { getTodayForInput } from './utils/dateUtils';
 
 function App() {
   const [formData, setFormData] = useState({
+    // Document Header Information
+    reference: '',
+    edms: '',
+    validity: '',
+    
     // Activity Information
     title: '',
     creatorName: '',
@@ -45,9 +50,11 @@ function App() {
   });
 
   const [hazardData, setHazardData] = useState([]);
+  const [hazardDefinitions, setHazardDefinitions] = useState([]);
   const [buildingRoomData, setBuildingRoomData] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
     loadHazards();
@@ -58,11 +65,12 @@ function App() {
   const loadHazards = async () => {
     try {
       setLoading(true);
-      const [hazardData, buildingRoomData] = await Promise.all([
+      const [hazardDataResult, buildingRoomData] = await Promise.all([
         loadHazardData(),
         loadBuildingRoomData()
       ]);
-      setHazardData(hazardData);
+      setHazardData(hazardDataResult.hazardData || hazardDataResult);
+      setHazardDefinitions(hazardDataResult.hazardDefinitions || []);
       setBuildingRoomData(buildingRoomData);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -78,17 +86,90 @@ function App() {
     }));
   };
 
+  const resetForm = async () => {
+    const confirmed = await window.electronAPI.showMessageDialog({
+      type: 'warning',
+      title: 'Reset Form',
+      message: 'Are you sure you want to reset all form data?',
+      detail: 'This will clear all entered information and cannot be undone.',
+      buttons: ['Cancel', 'Reset']
+    });
+    
+    if (confirmed.response === 1) { // User clicked "Reset"
+      setFormData({
+        // Document Header Information
+        reference: '',
+        edms: '',
+        validity: '',
+        
+        // Activity Information
+        title: '',
+        creatorName: '',
+        creatorDepartment: '',
+        responsiblePerson: '',
+        participantCount: '',
+        startDate: getTodayForInput(),
+        endDate: '',
+        location: '',
+        building: '',
+        room: '',
+        cernSupport: '',
+        cmsSupport: '',
+        
+        // Documents
+        safetyDocuments: '',
+        technicalDocuments: '',
+        otherDocuments: '',
+        hseSupport: '',
+        referenceDocuments: '',
+        
+        // Activity Description
+        activityDescription: '',
+        
+        // Hazards
+        selectedHazards: [],
+        hazardDetails: {},
+        
+        // Uploaded files
+        uploadedFiles: []
+      });
+      setContactData([]);
+      setCurrentStep(1);
+      
+      await window.electronAPI.showMessageDialog({
+        type: 'info',
+        title: 'Reset Complete',
+        message: 'Form has been reset successfully',
+        detail: 'All data has been cleared and you can start fresh.'
+      });
+    }
+  };
+
   const updateHazardDetails = (hazardCategory, subHazard, details) => {
-    setFormData(prev => ({
-      ...prev,
-      hazardDetails: {
-        ...prev.hazardDetails,
-        [hazardCategory]: {
-          ...prev.hazardDetails[hazardCategory],
-          [subHazard]: details
-        }
+    setFormData(prev => {
+      const newHazardDetails = { ...prev.hazardDetails };
+      
+      if (!newHazardDetails[hazardCategory]) {
+        newHazardDetails[hazardCategory] = {};
       }
-    }));
+      
+      if (details === undefined) {
+        // Remove the hazard
+        const { [subHazard]: removed, ...rest } = newHazardDetails[hazardCategory];
+        newHazardDetails[hazardCategory] = rest;
+      } else {
+        // Add or update the hazard
+        newHazardDetails[hazardCategory] = {
+          ...newHazardDetails[hazardCategory],
+          [subHazard]: details
+        };
+      }
+      
+      return {
+        ...prev,
+        hazardDetails: newHazardDetails
+      };
+    });
   };
 
   const handleHazardSelection = (hazardName, selected) => {
@@ -105,14 +186,14 @@ function App() {
       if (window.electronAPI) {
         const result = await window.electronAPI.saveDraft(formData);
         if (result.success) {
-          alert('Draft saved successfully!');
+          console.log('Draft saved successfully!');
         } else {
-          alert('Error saving draft: ' + (result.error || 'Unknown error'));
+          console.error('Error saving draft:', result.error || 'Unknown error');
         }
       }
     } catch (error) {
       console.error('Error saving draft:', error);
-      alert('Error saving draft: ' + error.message);
+      console.error('Error saving draft:', error.message);
     }
   };
 
@@ -154,30 +235,75 @@ function App() {
             // Uploaded files
             uploadedFiles: result.data.uploadedFiles || []
           };
-          setFormData(loadedData);
+          setFormData(prev => {
+            return { ...loadedData };
+          });
           
-          alert('Draft loaded successfully!');
+          // Force remount of form components by changing key
+          setFormKey(prev => prev + 1);
+          
+          // Additional DOM reset after remount
+          setTimeout(() => {
+            // Force all form elements to reset their internal state
+            const allInputs = document.querySelectorAll('input, textarea, select');
+            allInputs.forEach(input => {
+              // Force re-creation of input state
+              const value = input.value;
+              input.value = '';
+              input.value = value;
+              // Clear any internal focus state
+              input.blur();
+              // Trigger a synthetic change event to ensure React state sync
+              const event = new Event('input', { bubbles: true });
+              input.dispatchEvent(event);
+            });
+          }, 200);
+          
+          console.log('Draft loaded successfully!');
         }
       }
     } catch (error) {
       console.error('Error loading draft:', error);
-      alert('Error loading draft: ' + error.message);
     }
   };
 
   const handleExport = async () => {
     try {
       if (window.electronAPI) {
-        const result = await window.electronAPI.exportDocument(formData);
+        // Load contact data and include it in the export data
+        const contactData = await loadContactData();
+        
+        // Include hazard definitions and contact data in the export data
+        const exportData = {
+          ...formData,
+          hazardDefinitions: hazardDefinitions,
+          contactData: contactData
+        };
+        const result = await window.electronAPI.exportDocument(exportData);
         if (result.success) {
-          alert('Document exported successfully!');
+          await window.electronAPI.showMessageDialog({
+            type: 'info',
+            title: 'Export Successful',
+            message: 'Document exported successfully!',
+            detail: 'Your hazard identification document has been saved.'
+          });
         } else {
-          alert('Error exporting document: ' + (result.error || 'Unknown error'));
+          await window.electronAPI.showMessageDialog({
+            type: 'error',
+            title: 'Export Failed',
+            message: 'Error exporting document',
+            detail: result.error || 'Unknown error occurred during export.'
+          });
         }
       }
     } catch (error) {
       console.error('Error exporting document:', error);
-      alert('Error exporting document: ' + error.message);
+      await window.electronAPI.showMessageDialog({
+        type: 'error',
+        title: 'Export Error',
+        message: 'Unexpected error during export',
+        detail: error.message
+      });
     }
   };
 
@@ -241,6 +367,7 @@ function App() {
         {/* Current Step Content */}
         {CurrentStepComponent && (
           <CurrentStepComponent 
+            key={formKey}
             formData={formData}
             updateFormData={updateFormData}
             updateHazardDetails={updateHazardDetails}
@@ -259,6 +386,7 @@ function App() {
           onSaveDraft={handleSaveDraft}
           onLoadDraft={handleLoadDraft}
           onExport={handleExport}
+          onReset={resetForm}
           formData={formData}
         />
       </div>
