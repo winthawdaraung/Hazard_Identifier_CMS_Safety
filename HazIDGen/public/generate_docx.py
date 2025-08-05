@@ -166,6 +166,7 @@ def create_hazard_table(doc, category_name, hazards_data):
             subject_para = row_cells[0].paragraphs[0]
             subject_run = subject_para.runs[0] if subject_para.runs else subject_para.add_run()
             subject_run.text = display_name
+            subject_run.alignment = WD_ALIGN_PARAGRAPH.LEFT
             subject_run.bold = True
             
             # Details
@@ -186,8 +187,8 @@ def create_hazard_table(doc, category_name, hazards_data):
         # Format data rows with consistent styling
         for row in table.rows[1:]:  # Skip header row
             for i, cell in enumerate(row.cells):
-                if i == 0:  # Subject column - center align and bold
-                    format_table_cell(cell, font_size=10, bold=True, alignment=WD_ALIGN_PARAGRAPH.CENTER)
+                if i == 0:  # Subject column - left align and bold
+                    format_table_cell(cell, font_size=10, bold=True, alignment=WD_ALIGN_PARAGRAPH.LEFT)
                 else:  # Details and Recommendations - left align
                     format_table_cell(cell, font_size=10, bold=False, alignment=WD_ALIGN_PARAGRAPH.LEFT)
         
@@ -201,9 +202,20 @@ def create_header_with_logo(doc, data=None):
     try:
         print("Creating header with logo...")
         # Get the correct path to assets directory
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        assets_dir = os.path.join(script_dir, '..', 'src', 'assets')
+        # Handle both development and PyInstaller packaged executable cases
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller executable
+            # The executable is in public/, assets are in ../src/assets/
+            script_dir = os.path.dirname(sys.executable)
+            assets_dir = os.path.join(script_dir, '..', 'src', 'assets')
+        else:
+            # Running as Python script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            assets_dir = os.path.join(script_dir, '..', 'src', 'assets')
+        
+        print(f"Script directory: {script_dir}")
         print(f"Assets directory: {assets_dir}")
+        print(f"Assets directory exists: {os.path.exists(assets_dir)}")
         
         # Create a table for the header with 5 columns: Logos and Metadata
         header_table = doc.add_table(rows=1, cols=5)
@@ -254,18 +266,18 @@ def create_header_with_logo(doc, data=None):
         # Metadata cells (right side)
         # Add metadata information from user input or defaults
         reference_cell = header_table.rows[0].cells[1]
-        reference_value = data.get('reference', 'CMS-SIT-0000000') if data else 'CMS-SIT-0000000'
+        reference_value = data.get('reference', '') if data else ''
         reference_cell.text = f'Reference:\n{reference_value}'
         
         edms_cell = header_table.rows[0].cells[2]
-        edms_value = data.get('edms', 'CMS-EDMS-0000000') if data else 'CMS-EDMS-0000000'
+        edms_value = data.get('edms', '') if data else ''
         edms_cell.text = f'EDMS:\n{edms_value}'
         
         rev_cell = header_table.rows[0].cells[3]
         rev_cell.text = 'Rev.:\n0.1'
         
         validity_cell = header_table.rows[0].cells[4]
-        validity_value = data.get('validity', '31/12/2023') if data else '31/12/2023'
+        validity_value = data.get('validity', 'EDMS') if data else 'EDMS'
         validity_cell.text = f'Validity:\n{validity_value}'
         
         # Format all cells with consistent styling
@@ -382,10 +394,10 @@ def create_hazard_definitions_table(doc, data):
         # Format all content cells with consistent styling
         for row in table.rows[1:]:  # Skip header row
             for i, cell in enumerate(row.cells):
-                if i == 1:  # Check column - center align
+                if i == 1:  # Check column - center align (keep centered for checkboxes)
                     format_table_cell(cell, font_size=10, bold=False, alignment=WD_ALIGN_PARAGRAPH.CENTER)
-                elif i == 0:  # Hazard column - center align and bold
-                    format_table_cell(cell, font_size=10, bold=True, alignment=WD_ALIGN_PARAGRAPH.CENTER)
+                elif i == 0:  # Hazard column - left align and bold
+                    format_table_cell(cell, font_size=10, bold=True, alignment=WD_ALIGN_PARAGRAPH.LEFT)
                 else:  # Other columns - left align
                     format_table_cell(cell, font_size=10, bold=False, alignment=WD_ALIGN_PARAGRAPH.LEFT)
         
@@ -421,6 +433,7 @@ def generate_hazard_document(data, output_path):
         create_header_with_logo(doc, data)
         
         # Document title
+        doc.add_paragraph()  # Add a blank line before the title
         title = add_formatted_heading(doc, 'Safety Report', level=0, font_size=16, alignment=WD_ALIGN_PARAGRAPH.CENTER)
         
         # Subtitle

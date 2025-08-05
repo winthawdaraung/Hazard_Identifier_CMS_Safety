@@ -1,3 +1,14 @@
+/**
+ * Electron Main Process
+ * 
+ * This file handles the main Electron process including:
+ * - Window management and application lifecycle
+ * - File system operations (Excel reading, draft saving/loading)
+ * - IPC communication with renderer process
+ * - Application menu setup
+ * - Security configuration
+ */
+
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -5,6 +16,12 @@ const XLSX = require('xlsx');
 
 let mainWindow;
 
+/**
+ * Create the application menu bar
+ * 
+ * Sets up the menu structure with File, Edit, and Help menus.
+ * Includes keyboard shortcuts for common operations like save, load, and export.
+ */
 function createApplicationMenu() {
   const template = [
     {
@@ -195,15 +212,74 @@ function createApplicationMenu() {
           type: 'separator'
         },
         {
-          label: 'Open Data Folder',
-          click: () => {
-            let dataDir;
-            if (app.isPackaged) {
-              dataDir = path.join(process.resourcesPath, '..', 'data');
-            } else {
-              dataDir = path.join(process.cwd(), 'data');
+          label: 'Create/Open External Data Folder',
+          click: async () => {
+            try {
+              let dataDir, excelDir;
+              if (app.isPackaged) {
+                dataDir = path.join(process.resourcesPath, '..', 'data');
+                excelDir = path.join(dataDir, 'excel');
+              } else {
+                dataDir = path.join(process.cwd(), 'data');
+                excelDir = path.join(dataDir, 'excel');
+              }
+
+              // Create directories if they don't exist
+              if (!fs.existsSync(dataDir)) {
+                fs.mkdirSync(dataDir, { recursive: true });
+              }
+              if (!fs.existsSync(excelDir)) {
+                fs.mkdirSync(excelDir, { recursive: true });
+              }
+
+              // Copy Excel files if they don't exist externally
+              const sourceDir = app.isPackaged 
+                ? path.join(process.resourcesPath, 'app', 'data', 'excel')
+                : path.join(process.cwd(), 'data', 'excel');
+
+              const filesToCopy = [
+                'CMS_Safety-List_Preventive_Protective_Measures.xlsx',
+                'CMS_Safety-Location_TSO_Links_Reference.xlsx'
+              ];
+
+              let copiedFiles = 0;
+              for (const fileName of filesToCopy) {
+                const sourcePath = path.join(sourceDir, fileName);
+                const targetPath = path.join(excelDir, fileName);
+                
+                if (fs.existsSync(sourcePath) && !fs.existsSync(targetPath)) {
+                  fs.copyFileSync(sourcePath, targetPath);
+                  copiedFiles++;
+                }
+              }
+
+              // Show success message
+              const message = copiedFiles > 0 
+                ? `External data folder created successfully!\n\n${copiedFiles} Excel file(s) copied.\n\nYou can now modify these files and changes will be reflected in the application.`
+                : 'External data folder already exists.\n\nYou can modify the Excel files and changes will be reflected in the application.';
+
+              await dialog.showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'External Data Folder',
+                message: message,
+                detail: `Location: ${excelDir}`,
+                buttons: ['Open Folder', 'OK']
+              }).then((result) => {
+                if (result.response === 0) {
+                  shell.showItemInFolder(excelDir);
+                }
+              });
+
+            } catch (error) {
+              console.error('Error creating external data folder:', error);
+              dialog.showMessageBox(mainWindow, {
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create external data folder',
+                detail: error.message,
+                buttons: ['OK']
+              });
             }
-            shell.showItemInFolder(dataDir);
           }
         }
       ]
@@ -340,6 +416,12 @@ async function getUploadsDirectory() {
   }
 }
 
+/**
+ * Create the main application window
+ * 
+ * Initializes the BrowserWindow with security settings, loads the appropriate
+ * content (dev server or built files), and sets up window event handlers.
+ */
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -355,15 +437,15 @@ function createWindow() {
   const isDev = !app.isPackaged;
   
   if (isDev) {
-    console.log('Running in development mode');
+    // Development mode - load from Vite dev server
     // Try to load from dev server first, fall back to built files
     mainWindow.loadURL('http://localhost:5173').catch(() => {
-      console.log('Dev server not available, loading from built files');
+      // Development server not available - fallback to built files
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     });
     mainWindow.webContents.openDevTools();
   } else {
-    console.log('Running in production mode');
+    // Production mode - load from built files
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
@@ -390,65 +472,34 @@ app.on('window-all-closed', () => {
   }
 });
 
-// IPC Handlers
-// ipcMain.handle('read-excel-file', async (event, filePath, sheetName, headerRow=0) => {
-//   console.log('Reading Excel file from:', filePath);
-//   try {
-//     // Try to read from the provided path first
-//     let fullPath = filePath;
-    
-//     // If it's a relative path, make it relative to the app directory
-//     if (!path.isAbsolute(filePath)) {
-//       const appPath = app.isPackaged ? process.resourcesPath : process.cwd();
-//       fullPath = path.join(appPath, filePath);
-//     }
-    
-//     console.log('Attempting to read Excel file from:', fullPath);
-    
-//     if (!fs.existsSync(fullPath)) {
-//       throw new Error(`File not found: ${fullPath}`);
-//     }
-    
-//     const workbook = XLSX.readFile(fullPath);
-//     console.log('Available sheets:', workbook.SheetNames);
-//     console.log('Requested sheet:', sheetName);
-    
-//     let worksheet;
-//     if (!workbook.Sheets[sheetName]) {
-//       console.log(`Sheet "${sheetName}" not found, trying first sheet: ${workbook.SheetNames[0]}`);
-//       worksheet = workbook.Sheets[workbook.SheetNames[0]];
-//     } else {
-//       worksheet = workbook.Sheets[sheetName];
-//     }
-//     // Use specified header row (default is 0 for first row)
-//     const data = XLSX.utils.sheet_to_json(worksheet, {
-//       header: headerRow, // Use specified header row
-//       range: headerRow   // Start from header row
-//     });
-    
-//     console.log('Excel file read successfully, rows:', data.length);
-//     console.log("excel data", data);
-//     return { success: true, data };
-//   } catch (error) {
-//     console.error('Error reading Excel file:', error);
-//     return { success: false, error: error.message };
-//   }
-// });
+// IPC Handlers);
 
 
 ipcMain.handle('read-excel-file', async (event, filePath, sheetName, headerRow = 0) => {
   try {
     let fullPath = filePath;
     
-    // Handle relative paths for packaged app
+    // Handle relative paths - try external data folder first, then embedded files
     if (!path.isAbsolute(filePath)) {
-      // In packaged app, the files are in resources/app/
-      const appPath = app.isPackaged ? path.join(process.resourcesPath, 'app') : process.cwd();
-      fullPath = path.join(appPath, filePath);
+      if (app.isPackaged) {
+        // First try external data folder (next to the executable)
+        const externalDataPath = path.join(process.resourcesPath, '..', filePath);
+        if (fs.existsSync(externalDataPath)) {
+          fullPath = externalDataPath;
+          console.log('Using external data file:', fullPath);
+        } else {
+          // Fall back to embedded files
+          const appPath = path.join(process.resourcesPath, 'app');
+          fullPath = path.join(appPath, filePath);
+          console.log('Using embedded data file:', fullPath);
+        }
+      } else {
+        // In development, use project files
+        fullPath = path.join(process.cwd(), filePath);
+      }
     }
     
-    console.log(`Attempting to read Excel file from: ${fullPath}`);
-    
+    // Attempt to read Excel file from resolved path
     if (!fs.existsSync(fullPath)) {
       throw new Error(`File not found: ${fullPath}`);
     }
@@ -465,7 +516,7 @@ ipcMain.handle('read-excel-file', async (event, filePath, sheetName, headerRow =
       defval: ''
     });
     
-    console.log(`Successfully loaded ${data.length} rows from ${sheetName}`);
+    // Excel file loaded successfully with data rows
     return { success: true, data };
   } catch (error) {
     console.error('Error reading Excel:', error);
@@ -529,7 +580,7 @@ ipcMain.handle('load-draft', async () => {
     if (filePaths.length > 0) {
       const data = fs.readFileSync(filePaths[0], 'utf8');
       const parsedData = JSON.parse(data);
-      console.log('Electron: Loaded draft data:', parsedData);
+      // Draft data loaded successfully from file system
       return { success: true, data: parsedData };
     }
     return { success: false };
@@ -616,8 +667,32 @@ ipcMain.handle('export-document', async (event, data) => {
     if (filePath) {
       // Use the new hazard document generator
       const hazardDocGenerator = require('../public/hazard-document-generator.cjs');
+      
+      // Generate final DOCX document
       await hazardDocGenerator.generateHazardDocument(data, filePath);
-      return { success: true, path: filePath };
+      
+      // Generate loadable draft JSON file (same filename with _DRAFT.json suffix)
+      const baseName = path.basename(filePath, '.docx');
+      const dirName = path.dirname(filePath);
+      const draftPath = path.join(dirName, `${baseName}_DRAFT.json`);
+      
+      // Create draft JSON with current form data
+      const draftData = {
+        ...data,
+        exportedAt: new Date().toISOString(),
+        version: '1.0',
+        type: 'hazid-draft'
+      };
+      
+      // Save the draft as JSON file
+      fs.writeFileSync(draftPath, JSON.stringify(draftData, null, 2), 'utf-8');
+      
+      return { 
+        success: true, 
+        path: filePath,
+        draftPath: draftPath,
+        message: 'Document has been generated successfully!'
+      };
     }
     return { success: false };
   } catch (error) {
@@ -654,5 +729,5 @@ ipcMain.handle('show-message-dialog', async (event, options) => {
 
 // Handle app ready
 app.on('ready', () => {
-  console.log('Electron app is ready');
+  // Electron application initialized and ready
 });

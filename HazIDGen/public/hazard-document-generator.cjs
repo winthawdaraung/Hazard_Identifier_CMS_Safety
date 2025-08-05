@@ -1,7 +1,25 @@
+/**
+ * Hazard Document Generator
+ * 
+ * This module handles the generation of hazard identification documents in DOCX format.
+ * Uses a bundled standalone Python executable for document generation.
+ * 
+ * Dependencies:
+ * - fs: File system operations
+ * - path: Path manipulation utilities
+ * - spawn: Child process execution for standalone Python executable
+ */
+
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 
+/**
+ * Format date string to DD/MM/YYYY format
+ * 
+ * @param {string} dateString - Input date string
+ * @returns {string} Formatted date or 'N/A' if invalid
+ */
 function formatDateToDDMMYYYY(dateString) {
   if (!dateString) return "N/A";
   try {
@@ -12,6 +30,12 @@ function formatDateToDDMMYYYY(dateString) {
   }
 }
 
+/**
+ * Generate text-based fallback document when DOCX generation fails
+ * 
+ * @param {Object} data - Form data containing all hazard identification information
+ * @returns {string} Formatted text content for the document
+ */
 function generateTextFallback(data) {
   let content = "HAZARD IDENTIFICATION REPORT\n\n";
   
@@ -86,36 +110,43 @@ function generateTextFallback(data) {
 
 async function generateHazardDocument(data, outputPath) {
   try {
-    console.log(' Using Python script for DOCX generation...');
+    console.log('Starting document generation with standalone Python executable...');
     
     // Create temporary JSON file for Python script
     const tempJsonPath = path.join(path.dirname(outputPath), 'temp_data.json');
     fs.writeFileSync(tempJsonPath, JSON.stringify(data, null, 2));
     
-    // Call Python script
+    // Get the path to the standalone Python executable
+    // In development, use the built executable
+    // In packaged app, it should be in the resources directory
+    const { app } = require('electron');
+    let pythonExePath;
+    
+    if (app && app.isPackaged) {
+      // In packaged app, look for the executable in resources
+      pythonExePath = path.join(process.resourcesPath, 'app', 'dist', 'generate_docx.exe');
+    } else {
+      // In development, use the local build
+      pythonExePath = path.join(__dirname, '..', 'dist', 'generate_docx.exe');
+    }
+    
+    console.log('Python executable path:', pythonExePath);
+    
+    // Check if standalone Python executable exists
+    if (!fs.existsSync(pythonExePath)) {
+      throw new Error(`Standalone Python executable not found: ${pythonExePath}`);
+    }
+    
+    // Check if temp JSON was created
+    if (!fs.existsSync(tempJsonPath)) {
+      throw new Error(`Temp JSON file not created: ${tempJsonPath}`);
+    }
+    
+    // Call standalone Python executable
     return new Promise((resolve, reject) => {
-      const pythonScript = path.join(__dirname, 'generate_docx.py');
+      console.log('Executing standalone Python executable with arguments:', [tempJsonPath, outputPath]);
       
-      console.log('Calling Python script:', pythonScript);
-      console.log('Input JSON:', tempJsonPath);
-      console.log('Output DOCX:', outputPath);
-      console.log('Python command: python', pythonScript, tempJsonPath, outputPath);
-      
-      // Check if Python script exists
-      if (!fs.existsSync(pythonScript)) {
-        console.error(' Python script not found:', pythonScript);
-        reject(new Error(`Python script not found: ${pythonScript}`));
-        return;
-      }
-      
-      // Check if temp JSON was created
-      if (!fs.existsSync(tempJsonPath)) {
-        console.error(' Temp JSON file not created:', tempJsonPath);
-        reject(new Error(`Temp JSON file not created: ${tempJsonPath}`));
-        return;
-      }
-      
-      const pythonProcess = spawn('python', [pythonScript, tempJsonPath, outputPath], {
+      const pythonProcess = spawn(pythonExePath, [tempJsonPath, outputPath], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
       
@@ -124,52 +155,62 @@ async function generateHazardDocument(data, outputPath) {
       
       pythonProcess.stdout.on('data', (data) => {
         stdout += data.toString();
-        console.log('Python stdout:', data.toString().trim());
+        console.log('Python stdout:', data.toString());
       });
       
       pythonProcess.stderr.on('data', (data) => {
         stderr += data.toString();
-        console.log('Python stderr:', data.toString().trim());
+        console.log('Python stderr:', data.toString());
       });
       
       pythonProcess.on('close', (code) => {
+        console.log('Python process closed with code:', code);
+        
         // Clean up temporary JSON file
         try {
           fs.unlinkSync(tempJsonPath);
         } catch (error) {
-          console.log('Could not delete temp JSON file:', error.message);
+          console.log('Warning: Could not clean up temp file:', error.message);
         }
         
         if (code === 0) {
-          console.log('Python script completed successfully');
+          console.log('Document generation completed successfully');
           resolve(true);
         } else {
-          console.error(' Python script failed with code:', code);
-          console.error(' Python stderr:', stderr);
-          console.error(' Python stdout:', stdout);
-          reject(new Error(`Python script failed with code ${code}: ${stderr}`));
+          console.error('Python executable failed with code:', code);
+          console.error('Python stderr:', stderr);
+          console.error('Python stdout:', stdout);
+          reject(new Error(`Python executable failed with code ${code}: ${stderr}`));
         }
       });
       
       pythonProcess.on('error', (error) => {
-        console.error(' Failed to start Python script:', error);
+        console.error('Failed to start Python executable:', error);
+        
+        // Clean up temporary JSON file
+        try {
+          fs.unlinkSync(tempJsonPath);
+        } catch (cleanupError) {
+          console.log('Warning: Could not clean up temp file:', cleanupError.message);
+        }
+        
         reject(error);
       });
     });
     
   } catch (error) {
-    console.error(' Error in Python-based generation:', error);
+    console.error('Error in Python-based generation:', error);
     
     // Fallback to text file
     try {
-      console.log(' Falling back to text generation...');
+      console.log('Python executable failed - using text fallback generation');
       const textContent = generateTextFallback(data);
       const textPath = outputPath.replace('.docx', '.txt');
       fs.writeFileSync(textPath, textContent);
-      console.log(' Text document generated as fallback:', textPath);
+      console.log('Text document generated successfully as fallback');
       return true;
     } catch (fallbackError) {
-      console.error(' All document generation methods failed:', fallbackError);
+      console.error('All document generation methods failed:', fallbackError);
       throw error;
     }
   }

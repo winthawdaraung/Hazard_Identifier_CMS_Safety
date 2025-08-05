@@ -15,7 +15,7 @@ Place your Excel files in the `data/excel/` directory. This is the primary locat
    - Sheet name: "ENG List of hazards"
    - Used for hazard selection and details
 
-2. **`TSO Recommendation Info.xlsx`**
+2. **`CMS_Safety-Location_TSO_Links_Reference.xlsx`**
    - Contains building and room information
    - Sheet name: "Building Room Info"
    - Used for location selection
@@ -33,7 +33,7 @@ The application will also check these locations in order:
 data/
 ├── excel/
 │   ├── CMS_Safety-List_Preventive_Protective_Measures.xlsx
-│   └── TSO Recommendation Info.xlsx
+│   └── CMS_Safety-Location_TSO_Links_Reference.xlsx
 └── README.md
 ```
 
@@ -55,7 +55,7 @@ data/
   - `Specific Hazards` - Specific hazard name
   - `Safety Measures` - Safety recommendations
 
-### Building Data (`TSO Recommendation Info.xlsx`)
+### Building Data (`CMS_Safety-Location_TSO_Links_Reference.xlsx`)
 - **Sheet**: "Building Room Info"
 - **Headers**: Row 1 (index 0)
 - **Required columns**:

@@ -186,7 +186,7 @@ function App() {
       if (window.electronAPI) {
         const result = await window.electronAPI.saveDraft(formData);
         if (result.success) {
-          console.log('Draft saved successfully!');
+          // Draft saved successfully to file system
         } else {
           console.error('Error saving draft:', result.error || 'Unknown error');
         }
@@ -259,7 +259,7 @@ function App() {
             });
           }, 200);
           
-          console.log('Draft loaded successfully!');
+          // Draft loaded successfully from file system
         }
       }
     } catch (error) {
@@ -284,8 +284,10 @@ function App() {
           await window.electronAPI.showMessageDialog({
             type: 'info',
             title: 'Export Successful',
-            message: 'Document exported successfully!',
-            detail: 'Your hazard identification document has been saved.'
+            message: result.message || 'Documents exported successfully!',
+            detail: result.draftPath ? 
+              `Final document: ${result.path}\nLoadable draft: ${result.draftPath}` :
+              'Your hazard identification document has been saved.'
           });
         } else {
           await window.electronAPI.showMessageDialog({

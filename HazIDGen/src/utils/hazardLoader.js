@@ -1,10 +1,18 @@
-// Utility to load hazard data from Excel file
+/**
+ * Load hazard data from Excel file
+ * 
+ * This function attempts to load hazard definitions and HSE links from the Excel file
+ * containing the CMS Safety preventive/protective measures data. It tries multiple
+ * possible file paths and falls back to hardcoded data if the file cannot be loaded.
+ * 
+ * @returns {Promise<Array>} Array of hazard objects with categories, types, and definitions
+ */
 export const loadHazardData = async () => {
   try {
     const fallbackData = [ /* fallback content omitted for brevity */ ];
 
     if (window.electronAPI) {
-      console.log('Electron API is available');
+      // Electron API is available - proceed with file system access
 
       const possiblePaths = [
         './data/excel/CMS_Safety-List_Preventive_Protective_Measures.xlsx',
@@ -17,31 +25,31 @@ export const loadHazardData = async () => {
 
       for (const excelPath of possiblePaths) {
         try {
-          console.log(`Trying to load Excel file from: ${excelPath}`);
+          // Attempt to load Excel file from current path
           const sheetName = 'ENG List of hazards';
           result = await window.electronAPI.readExcelFile(excelPath, sheetName, 1);
 
           const sheetsResult = await window.electronAPI.getExcelSheets(excelPath);
           if (sheetsResult.success) {
-            console.log('Available sheets:', sheetsResult.sheets);
+            // Successfully retrieved sheet names from Excel file
           }
 
           const hseSheetName = 'HSE Sheet';
           try {
             hseLinksResult = await window.electronAPI.readExcelFile(excelPath, hseSheetName, 0);
             if (hseLinksResult && hseLinksResult.success && Array.isArray(hseLinksResult.data)) {
-              console.log(`Successfully loaded HSE links from sheet: ${hseSheetName}`);
+              // HSE links loaded successfully from designated sheet
             }
           } catch (error) {
-            console.log(`Failed to load HSE links from sheet ${hseSheetName}:`, error.message);
+            // HSE links sheet not found or failed to load - continuing without HSE data
           }
 
           if (result.success && Array.isArray(result.data)) {
-            console.log(`Successfully loaded Excel file from: ${excelPath}`);
+            // Excel file loaded successfully from current path
             break;
           }
         } catch (error) {
-          console.log(`Failed to load from ${excelPath}:`, error.message);
+          // Failed to load from current path - trying next path
           continue;
         }
       }
@@ -50,9 +58,9 @@ export const loadHazardData = async () => {
         const hseLinksMap = {};
         const hazardDefinitionsMap = {};
         if (hseLinksResult && hseLinksResult.success && Array.isArray(hseLinksResult.data)) {
-          console.log('HSE Sheet data:', hseLinksResult.data);
+          // Process HSE sheet data for link mapping
           hseLinksResult.data.forEach(item => {
-            console.log('Processing HSE item:', item);
+            // Map hazard codes to their corresponding HSE documentation links
             const catKey = String(item['Hazard Category'] || item['Category'] || '').trim().toLowerCase();
             const definition = String(item['Definition'] || '').trim();
             const link = String(item['HSE Link(s)'] || item['HSE Link'] || '').trim();
@@ -65,8 +73,8 @@ export const loadHazardData = async () => {
               }
             }
           });
-          console.log('HSE Links Map:', hseLinksMap);
-          console.log('Hazard Definitions Map:', hazardDefinitionsMap);
+          // HSE links mapping completed
+          // Hazard definitions mapping completed
         }
 
         const groupedData = {};
@@ -102,7 +110,7 @@ export const loadHazardData = async () => {
 
         // Add fallback definitions if none were loaded from Excel
         if (Object.keys(hazardDefinitionsMap).length === 0) {
-          console.log('No definitions found in Excel, using fallback definitions');
+          // Excel data not available or incomplete - using fallback definitions
           const fallbackDefinitions = {
             'chemical': 'All hazardous situations involving chemicals (product whether marketed or not, of natural origin or manufactured, used or emitted in different forms (solid, powder, liquid, gas, dust, smoke, fog, particles, fibers, etc.)), in the conditions of use and/or exposure.',
             'mechanical': 'All dangerous situations involving moving parts that can come into contact with a part of the human body and cause injury. These elements are often related to equipment or machines but can also relate to tools, parts, loads, projections of materials or fluids.',
@@ -122,7 +130,7 @@ export const loadHazardData = async () => {
           });
         }
 
-        console.log('Cleaned hazard data:', cleanedData);
+        // Hazard data processing completed successfully
         
         // Create hazard definitions for DOCX generation
         const hazardDefinitions = [];
@@ -175,6 +183,12 @@ export const loadHazardData = async () => {
 };
 
 // Group hazards by category
+/**
+ * Group hazards by their category for organized display
+ * 
+ * @param {Array} hazardData - Array of hazard objects
+ * @returns {Object} Object with categories as keys and hazard arrays as values
+ */
 export const groupHazardsByCategory = (hazardData) => {
   const grouped = {};
   hazardData.forEach(hazard => {
@@ -188,6 +202,14 @@ export const groupHazardsByCategory = (hazardData) => {
 };
 
 // Get safety measures for a specific hazard
+/**
+ * Get safety measures for a specific hazard
+ * 
+ * @param {Array} hazardData - Array of hazard objects
+ * @param {string} category - Hazard category
+ * @param {string} specificHazard - Specific hazard name
+ * @returns {Object} Object containing preventive and protective measures
+ */
 export const getSafetyMeasures = (hazardData, category, specificHazard) => {
   const hazard = hazardData.find(h =>
     (h.Category || h.category) === category &&
@@ -197,6 +219,14 @@ export const getSafetyMeasures = (hazardData, category, specificHazard) => {
 };
 
 // Get icon for a specific hazard
+/**
+ * Get the icon identifier for a specific hazard
+ * 
+ * @param {Array} hazardData - Array of hazard objects
+ * @param {string} category - Hazard category
+ * @param {string} specificHazard - Specific hazard name
+ * @returns {string} Icon identifier or default icon
+ */
 export const getHazardIcon = (hazardData, category, specificHazard) => {
   const hazard = hazardData.find(h =>
     (h.Category || h.category) === category &&
@@ -206,28 +236,36 @@ export const getHazardIcon = (hazardData, category, specificHazard) => {
 };
 
 // Load building and room data from Excel file
+/**
+ * Load building and room data from Excel file
+ * 
+ * Attempts to load building/room information from the Excel file for location
+ * selection in the activity form. Falls back to empty array if file unavailable.
+ * 
+ * @returns {Promise<Array>} Array of building/room objects
+ */
 export const loadBuildingRoomData = async () => {
   try {
     if (window.electronAPI) {
       const possiblePaths = [
-        './data/excel/TSO Recommendation Info.xlsx',
-        './src/assets/TSO Recommendation Info.xlsx',
-        './public/TSO Recommendation Info.xlsx'
+        './data/excel/CMS_Safety-Location_TSO_Links_Reference.xlsx',
+        './src/assets/CMS_Safety-Location_TSO_Links_Reference.xlsx',
+        './public/CMS_Safety-Location_TSO_Links_Reference.xlsx'
       ];
 
       let result = null;
       for (const excelPath of possiblePaths) {
         try {
-          console.log(`Trying to load building data from: ${excelPath}`);
+          // Attempt to load building and room data from Excel file
           const sheetName = 'Building Room Info';
           result = await window.electronAPI.readExcelFile(excelPath, sheetName, 0);
 
           if (result.success && Array.isArray(result.data)) {
-            console.log(`Successfully loaded building data from: ${excelPath}`);
+            // Building data loaded successfully
             break;
           }
         } catch (error) {
-          console.log(`Failed to load building data from ${excelPath}:`, error.message);
+          // Failed to load building data from current path - trying next
           continue;
         }
       }
@@ -256,6 +294,12 @@ export const loadBuildingRoomData = async () => {
   }
 };
 
+/**
+ * Extract unique building names from building/room data
+ * 
+ * @param {Array} buildingRoomData - Array of building/room objects
+ * @returns {Array} Array of unique building names
+ */
 export const getUniqueBuildings = (buildingRoomData) => {
   if (!Array.isArray(buildingRoomData)) return [];
   const buildings = buildingRoomData
@@ -267,6 +311,13 @@ export const getUniqueBuildings = (buildingRoomData) => {
   return [...new Set(buildings)].sort();
 };
 
+/**
+ * Get all rooms for a specific building
+ * 
+ * @param {Array} buildingRoomData - Array of building/room objects
+ * @param {string} building - Building name to filter by
+ * @returns {Array} Array of room names for the specified building
+ */
 export const getRoomsForBuilding = (buildingRoomData, building) => {
   if (!Array.isArray(buildingRoomData) || !building) return [];
   const buildingStr = String(building).trim();
@@ -281,13 +332,21 @@ export const getRoomsForBuilding = (buildingRoomData, building) => {
 };
 
 // Load contact data from Excel file
+/**
+ * Load contact information from Excel file
+ * 
+ * Loads both web contacts and email contacts from separate sheets in the Excel file.
+ * Web contacts contain URLs and contact persons, email contacts contain direct email addresses.
+ * 
+ * @returns {Promise<Object>} Object containing webContacts and emailContacts arrays
+ */
 export const loadContactData = async () => {
   try {
     if (window.electronAPI) {
       const possiblePaths = [
-        './data/excel/TSO Recommendation Info.xlsx',
-        './src/assets/TSO Recommendation Info.xlsx',
-        './public/TSO Recommendation Info.xlsx'
+        './data/excel/CMS_Safety-Location_TSO_Links_Reference.xlsx',
+        './src/assets/CMS_Safety-Location_TSO_Links_Reference.xlsx',
+        './public/CMS_Safety-Location_TSO_Links_Reference.xlsx'
       ];
 
       let webContactsResult = null;
@@ -295,26 +354,26 @@ export const loadContactData = async () => {
       
       for (const excelPath of possiblePaths) {
         try {
-          console.log(`Trying to load contact data from: ${excelPath}`);
+          // Attempt to load contact information from Excel file
           
           // Load Web Contacts sheet
           try {
             webContactsResult = await window.electronAPI.readExcelFile(excelPath, 'Web Contacts', 0);
             if (webContactsResult && webContactsResult.success && Array.isArray(webContactsResult.data)) {
-              console.log(`Successfully loaded Web Contacts from: ${excelPath}`);
+              // Web contacts loaded successfully from Excel
             }
           } catch (error) {
-            console.log(`Failed to load Web Contacts from ${excelPath}:`, error.message);
+            // Web contacts sheet not found - continuing without web contact data
           }
 
           // Load Email Contacts sheet
           try {
             emailContactsResult = await window.electronAPI.readExcelFile(excelPath, 'Email Contacts', 0);
             if (emailContactsResult && emailContactsResult.success && Array.isArray(emailContactsResult.data)) {
-              console.log(`Successfully loaded Email Contacts from: ${excelPath}`);
+              // Email contacts loaded successfully from Excel
             }
           } catch (error) {
-            console.log(`Failed to load Email Contacts from ${excelPath}:`, error.message);
+            // Email contacts sheet not found - continuing without email contact data
           }
 
           // If both sheets loaded successfully from this path, break
@@ -322,7 +381,7 @@ export const loadContactData = async () => {
             break;
           }
         } catch (error) {
-          console.log(`Failed to access file ${excelPath}:`, error.message);
+          // Failed to access Excel file - trying next path
           continue;
         }
       }
@@ -342,7 +401,7 @@ export const loadContactData = async () => {
             url: String(item.URL || '').trim(),
             description: String(item.Description || '').trim()
           }));
-        console.log(`Processed ${contactData.webContacts.length} web contacts`);
+        // Contact data processing completed
       }
 
       // Process Email Contacts
@@ -353,7 +412,7 @@ export const loadContactData = async () => {
             email: String(item.Email || '').trim(),
             description: String(item.Description || '').trim()
           }));
-        console.log(`Processed ${contactData.emailContacts.length} email contacts`);
+        // Email contact processing completed
       }
 
       return contactData;

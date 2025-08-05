@@ -8,7 +8,7 @@ const Header = () => {
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <img src={logo} alt="CERN CMS Safety" className="w-8 h-8" />
+            <img src={logo} alt="CERN CMS Safety" className="w-12 h-12" />
           </div>
           <div>
             <h1 className="text-2xl font-bold">CERN CMS Safety</h1>

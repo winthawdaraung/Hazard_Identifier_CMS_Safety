@@ -9,13 +9,20 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build-python": "cd public && pyinstaller generate_docx.py --onefile --noconsole --distpath ../dist && cd ..",
+    "preview": "vite preview",
     "electron-dev-simple": "cross-env NODE_ENV=development electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
-    "package-win": "npm run build && npx electron-packager . \"HazID Generator\" --platform=win32 --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.ico\"",
-    "package-mac": "npm run build && npx electron-packager . \"HazID Generator\" --platform=darwin --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.icns\"",
-    "package-linux": "npm run build && npx electron-packager . \"HazID Generator\" --platform=linux --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
-    "package-all": "npm run build && npx electron-packager . \"HazID Generator\" --all --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
-    "start": "npm run build && npm run electron-dev-simple"
+    "package-win": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=win32 --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.ico\"",
+    "package-mac": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=darwin --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.icns\"",
+    "package-linux": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=linux --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
+    "package-all": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --all --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
+    "start": "npm run build && npm run electron-dev-simple",
+    "clean": "rimraf dist release-builds",
+    "rebuild": "npm run clean && npm run build && npm run build-python",
+    "rebuild-win": "npm run clean && npm run package-win",
+    "rebuild-mac": "npm run clean && npm run package-mac",
+    "rebuild-linux": "npm run clean && npm run package-linux"
   },
   "dependencies": {
     "docx": "^7.3.0",
@@ -38,6 +45,7 @@
     "electron": "^25.3.1",
     "electron-packager": "^17.1.2",
     "postcss": "^8.4.27",
+    "rimraf": "^5.0.10",
     "tailwindcss": "^3.3.3",
     "vite": "^4.4.5",
     "wait-on": "^7.0.1"
