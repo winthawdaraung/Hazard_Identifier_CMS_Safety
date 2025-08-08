@@ -1,41 +1,98 @@
 # HazID Generator
 
-CERN CMS Safety Hazard Identification Generator - A desktop application for creating standardized hazard identification documents.
+CERN CMS Safety Hazard Identification Generator - A comprehensive desktop application for creating standardized hazard identification documents with advanced features and seamless workflow integration.
 
 ## Overview
 
-The HazID Generator is a specialized tool designed for CERN CMS Safety activities. It streamlines the process of creating comprehensive hazard identification documents by providing an intuitive interface for:
+The HazID Generator is a specialized tool designed for CERN CMS Safety activities. It streamlines the process of creating comprehensive hazard identification documents by providing an intuitive interface for activity management, risk assessment, and automated documentation.
 
-- Activity form completion
-- Hazard selection and risk assessment
-- Document upload and management
-- Contact information management
-- Automated document generation
+## ✨ Key Features
 
-## Features
+### 📋 **Document Generation & Export**
+- **Dual Export System**: Generates both final DOCX documents and loadable JSON draft files
+- **Professional Word Documents**: Creates properly formatted safety reports with CERN branding
+- **Left-aligned Table Content**: Improved readability with properly aligned table data
+- **Draft Management**: Save and reload work-in-progress documents
+- **Automated File Naming**: Smart naming based on project title and date
 
-- **Modern Desktop Interface**: Built with Electron for cross-platform compatibility
-- **Professional Dialog System**: Custom dialog boxes with proper titles and detailed messaging
-- **Excel Data Integration**: Automated loading of hazard data from Excel files
-- **Document Generation**: Creates formatted Word documents using templates
-- **File Management**: Upload and organize supporting documents
-- **Contact Management**: Maintain contact information for safety personnel
+### 🎯 **Hazard Management**
+- **Excel Data Integration**: Loads hazard definitions and HSE links from external Excel files
+- **Smart Mapping**: Handles spelling variations (e.g., "non-ionizing" vs "non ionizing")
+- **Complete Hazard Definitions**: All hazard categories include definitions and HSE documentation links
+- **Real-time Validation**: Instant feedback on hazard selection and form completion
+- **Categorized Display**: Organized hazard types with clear descriptions
+
+### 🛠️ **Application Features**
+- **Modern Desktop Interface**: Built with Electron 25 and React 18
+- **Cross-platform Compatibility**: Windows, macOS, and Linux support
+- **Professional Menu System**: Full application menu with working Tools options
+- **Excel Data Validation**: Built-in tools to check and validate Excel data files
+- **External Data Support**: Users can modify Excel files for custom hazard definitions
+- **Smart Form Validation**: Progress tracking and completion indicators
+
+### 📁 **File & Data Management**
+- **Uploads Folder**: Organized file storage with automatic folder creation
+- **External Excel Support**: Modify hazard data without rebuilding the application
+- **Data Folder Management**: Tools to create and manage external data directories
+- **Backup System**: Original embedded files preserved as fallbacks
+- **File System Integration**: Direct access to uploads and data folders from menu
+
+### 🔧 **Developer & Power User Features**
+- **Build System**: Automated Python executable generation
+- **Portable Distribution**: Self-contained application requiring no installation
+- **Debug Tools**: Excel data checker and form validation tools
+- **Menu Integration**: Access to all features through professional application menus
+- **Error Handling**: Comprehensive error messages and user guidance
 
 ## System Requirements
 
-- **Windows**: Windows 10 or later
+- **Windows**: Windows 10 or later (recommended)
 - **macOS**: macOS 10.12 or later  
 - **Linux**: Ubuntu 18.04 or later (or equivalent)
+- **Memory**: 4GB RAM minimum, 8GB recommended
+- **Storage**: 500MB free space for application and data files
+- **Python**: Not required - included as standalone executable
 
-## Installation
+## Installation & Distribution
 
-### Pre-built Releases
+### ✅ **Option 1: Portable Application (Recommended)**
 
-Download the latest release for your operating system from the `release-builds` directory:
+The HazID Generator is distributed as a **portable application** - no installation required!
 
-- **Windows**: `HazID Generator-win32-x64/HazID Generator.exe`
-- **macOS**: `HazID Generator-darwin-x64/HazID Generator.app`
-- **Linux**: `HazID Generator-linux-x64/HazID Generator`
+**For Windows:**
+1. Navigate to `app\HazID Generator-win32-x64\`
+2. Double-click `HazID Generator.exe` to run
+3. **No admin rights needed** - runs immediately
+
+**For macOS:**
+1. Navigate to `app/HazID Generator-darwin-x64/`
+2. Double-click `HazID Generator.app` to run
+
+**For Linux:**
+1. Navigate to `app/HazID Generator-linux-x64/`
+2. Run `./HazID Generator` from terminal or file manager
+
+### 📦 **What's Included**
+
+The portable application contains everything needed:
+- ✅ **Main Application** - Electron desktop app
+- ✅ **Python Runtime** - Document generation engine
+- ✅ **Excel Data Files** - Hazard definitions and HSE links
+- ✅ **Templates & Assets** - CERN logos, document templates
+- ✅ **All Dependencies** - Node.js runtime, libraries
+
+### 🌐 **Network Distribution**
+
+**For Organizations:**
+- Copy the entire application folder to network drives
+- Users can run directly from shared locations
+- No individual installations needed
+- Centralized updates by replacing the folder
+
+**For Individual Use:**
+- Copy to USB drives for offline distribution
+- Works on any compatible computer
+- No internet connection required for operation
 
 ### Development Setup
 
@@ -133,10 +190,10 @@ npm run package-all
 
 ### Build Output
 
-Built applications will be available in the `release-builds` directory:
+Built applications will be available in the `app` directory:
 
 ```
-release-builds/
+app/
 ├── HazID Generator-win32-x64/
 │   └── HazID Generator.exe      # Windows executable
 ├── HazID Generator-darwin-x64/
@@ -192,7 +249,7 @@ HazIDGen/
 │   ├── assets/            # Images and templates
 │   └── App.jsx            # Main application component
 ├── uploads/               # User uploaded files storage
-└── release-builds/        # Built applications for distribution
+└── app/                   # Built applications for distribution
 ```
 
 ## Technology Stack
@@ -204,30 +261,150 @@ HazIDGen/
 - **Data Processing**: xlsx library for Excel file handling
 - **Icons**: Lucide React
 
-## Usage
+## 📘 Usage Guide
+
+### 🚀 **Getting Started**
 
 1. **Launch the Application**
-   - Run the executable or use `npm start` for development
+   - Double-click `HazID Generator.exe` (Windows) or equivalent
+   - Application opens with the main form interface
 
-2. **Complete Activity Form**
-   - Fill in project details, dates, and personnel information
-   - Select appropriate activity types and locations
+2. **Application Interface Overview**
+   - **Header**: CERN CMS Safety branding and application title
+   - **Navigation Steps**: Progress indicator (Step 1 of 4)
+   - **Form Sections**: Activity details, hazard selection, documents, contacts
+   - **Action Buttons**: Previous, Next, Save Draft, Load Draft, Export
 
-3. **Select Hazards**
-   - Choose relevant hazards from the categorized lists
-   - Review and modify risk assessments as needed
+### 📝 **Step 1: Activity Information**
 
-4. **Upload Documents**
-   - Add supporting documentation using drag-and-drop interface
-   - Organize files by category
+Fill in the project details:
+- **Title** ⭐ (Required): Project or activity name
+- **Creator Information** ⭐ (Required): Your name and department
+- **Responsible Person** ⭐ (Required): Activity supervisor
+- **Dates** ⭐ (Required): Start date (end date optional)
+- **Location Details** ⭐ (Required): Building, room, specific location
+- **Additional Info**: Participant count, CERN/CMS support contacts
 
-5. **Manage Contacts**
-   - Add safety personnel and contact information
-   - Assign roles and responsibilities
+**💡 Tip**: Required fields are marked with ⭐ and must be completed to proceed.
 
-6. **Generate Document**
-   - Click "Export Document" to create formatted Word document
-   - Save to desired location
+### ⚠️ **Step 2: Hazard Selection**
+
+Choose applicable hazards from categorized lists:
+- **Hazard Categories**: Biological, Chemical, Electrical, Fire, Mechanical, etc.
+- **Specific Hazards**: Each category contains specific hazard types
+- **Definitions Available**: Click on hazards to see definitions and HSE links
+- **Multiple Selection**: Select all relevant hazards for your activity
+
+**Available Hazard Categories:**
+- 🧪 **Chemical**: Chemical substances, reactions, storage
+- ⚡ **Electrical**: High/low voltage, electrical equipment
+- 🔥 **Fire**: Flammable materials, ignition sources
+- ⚙️ **Mechanical**: Moving parts, pressure systems, tools
+- ☢️ **Ionizing Radiation**: Radioactive sources, classified areas
+- 📡 **Non-Ionizing Radiation**: Lasers, magnetic fields, RF radiation
+- 🦠 **Biological**: Organisms, biohazards, contamination
+- 🏗️ **Work Conditions**: Confined spaces, heights, ergonomics
+- 🌍 **Environmental Protection**: Waste, emissions, spills
+- 🚨 **Emergency Preparedness**: Evacuation, response procedures
+- 📋 **General**: Standard safety requirements
+- ❓ **Other Hazards**: Additional unlisted hazards
+
+### 📁 **Step 3: Document Upload** (Optional)
+
+Upload supporting documentation:
+- **Drag & Drop**: Drag files directly onto the upload area
+- **File Browser**: Click to select files from your computer
+- **Supported Types**: PDF, Word, Excel, images, text files
+- **Organization**: Files are stored in the uploads folder
+- **Management**: View, organize, and remove uploaded files
+
+### 👥 **Step 4: Contact Information**
+
+Add relevant safety personnel:
+- **Safety Contacts**: TSO, HSE personnel, emergency contacts
+- **Role Assignment**: Specify responsibilities for each contact
+- **Contact Details**: Names, departments, phone numbers, emails
+- **Auto-population**: Some contacts filled from Excel data based on location
+
+### 💾 **Draft Management**
+
+**Save Draft:**
+- Click "Save Draft" button at any time
+- Saves current progress to JSON file
+- Allows resuming work later
+- Files saved to system documents folder
+
+**Load Draft:**
+- Click "Load Draft" button
+- Select previously saved JSON draft file
+- All form data and selections restored
+- Continue where you left off
+
+### 📄 **Document Export**
+
+**Export Process:**
+1. Complete all required fields (⭐ marked)
+2. Select relevant hazards
+3. Click "Export Document" button
+4. Choose save location and filename
+
+**Generated Files:**
+- **Final Document**: `ProjectName.docx` - Professional Word document
+- **Draft File**: `ProjectName_DRAFT.json` - Loadable for future editing
+
+**Document Contents:**
+- 📋 **Cover Page**: Title, location, date, responsible persons
+- 📝 **Activity Details**: Complete project information
+- ⚠️ **Hazard Analysis**: Selected hazards with safety measures
+- 📞 **Contact Information**: Relevant safety personnel
+- 🏢 **CERN Branding**: Professional formatting with logos
+
+### 🛠️ **Application Menu Features**
+
+**File Menu:**
+- **New Document** (Ctrl+N): Clear form and start fresh
+- **Save Draft** (Ctrl+S): Save current progress
+- **Load Draft** (Ctrl+O): Load saved draft
+- **Export Document** (Ctrl+E): Generate final document
+- **Open Uploads Folder**: Access uploaded files directory
+
+**Tools Menu:**
+- **Check Excel Data**: Validate hazard data files
+- **Validate Form Data**: Check form completion status
+- **Create/Open External Data Folder**: Manage custom Excel files
+
+**View Menu:**
+- **Zoom In/Out**: Adjust interface scaling
+- **Toggle Fullscreen** (F11): Fullscreen mode
+- **Reset Zoom**: Return to default size
+
+### 🔧 **Advanced Features**
+
+**Custom Hazard Data:**
+1. Use "Tools → Create/Open External Data Folder"
+2. Modify Excel files in the created `data/excel/` folder
+3. Add custom hazards, update safety measures
+4. Restart application to load changes
+
+**Excel File Structure:**
+- **HSE Sheet**: Hazard categories, definitions, HSE links
+- **ENG List of hazards**: Detailed preventive measures
+- **Hazards Reference**: Additional reference information
+
+**Troubleshooting:**
+- **Menu not working**: Check "Tools → Check Excel Data" for file issues
+- **Missing definitions**: Verify Excel files in data folder
+- **Export fails**: Ensure all required fields completed
+- **Performance issues**: Close and restart application
+
+### 💡 **Pro Tips**
+
+1. **Save Frequently**: Use Ctrl+S to save drafts regularly
+2. **Use Templates**: Export one document as template for similar projects
+3. **Batch Processing**: Load drafts to quickly create multiple similar documents
+4. **Data Validation**: Use Tools menu to verify Excel data integrity
+5. **File Organization**: Use meaningful names for easy document management
+6. **Backup Data**: Keep copies of custom Excel files and important drafts
 
 ## Configuration
 
@@ -543,14 +720,125 @@ For issues and support:
 
 This project is developed for CERN CMS Safety activities. Please refer to CERN policies for usage and distribution guidelines.
 
-## Version History
+## 📋 Version History & Features
 
-- **v1.0.0** - Initial release with core functionality
-  - Activity form management
-  - Hazard selection interface
-  - Document generation capabilities
-  - Cross-platform desktop application
+### **v1.0.0** - Current Release
+**🎉 Complete Feature Set with Advanced Capabilities**
+
+#### **✨ New Features**
+- **Dual Export System**: Generate both final DOCX and loadable JSON drafts
+- **Smart Hazard Mapping**: Fixed "Non-Ionizing Radiation" and other hazard definition issues
+- **Left-aligned Tables**: Improved document readability with proper table alignment
+- **Working Menu System**: All application menu items now fully functional
+- **Excel Data Validation**: Built-in tools to check and validate hazard data files
+- **External Data Support**: Users can modify Excel files without rebuilding app
+- **Automatic Folder Creation**: Smart folder management for uploads and data
+- **Professional Error Handling**: Comprehensive error messages and user guidance
+
+#### **🔧 Technical Improvements**
+- **Python Executable Integration**: Standalone DOCX generation without Python installation
+- **Portable Distribution**: Self-contained application requiring no installation
+- **Enhanced Build System**: Automated compilation and packaging
+- **Cross-platform Compatibility**: Windows, macOS, and Linux support
+- **Modern Tech Stack**: Electron 25, React 18, Vite build system
+
+#### **🛠️ Core Functionality**
+- **Activity Form Management**: Complete project information handling
+- **Advanced Hazard Selection**: Categorized hazards with definitions and HSE links
+- **Document Upload System**: Drag-and-drop file management
+- **Contact Management**: Safety personnel and contact information
+- **Professional Document Generation**: CERN-branded Word documents
+- **Draft Save/Load**: Persistent work sessions with JSON format
+
+#### **📁 File & Data Management**
+- **External Excel Files**: Modify hazard data in `data/excel/` folder
+- **HSE Integration**: Direct links to CERN HSE documentation
+- **Backup System**: Original embedded files preserved as fallbacks
+- **Upload Organization**: Structured file storage with automatic categorization
+
+#### **🎯 User Experience**
+- **Step-by-step Workflow**: Guided 4-step process with progress tracking
+- **Real-time Validation**: Instant feedback on form completion
+- **Professional Interface**: CERN CMS Safety branding and styling
+- **Keyboard Shortcuts**: Full menu system with accelerator keys
+- **Accessibility**: Clear navigation and user-friendly error messages
+
+#### **🔍 Quality Assurance**
+- **Comprehensive Testing**: All features tested and validated
+- **Error Recovery**: Robust handling of edge cases and user errors
+- **Performance Optimization**: Fast startup and responsive interface
+- **Data Integrity**: Validation and verification of all user inputs
+
+## 🚀 Future Roadmap
+
+**Planned Enhancements:**
+- **Template Customization**: User-defined document templates
+- **Advanced Export Options**: PDF generation, custom formats
+- **Integration Features**: API connections to CERN systems
+- **Multi-language Support**: French and German translations
+- **Enhanced Reporting**: Analytics and usage statistics
+- **Cloud Synchronization**: Optional cloud storage for drafts
+
+## 📞 Support & Contact
+
+**For Technical Support:**
+- Check existing issues in the repository
+- Create detailed bug reports with system information
+- Include steps to reproduce any problems
+
+**For Feature Requests:**
+- Submit enhancement proposals through issue tracker
+- Provide use cases and expected benefits
+- Consider contributing to development
+
+**CERN CMS Safety Team:**
+- Internal CERN users: Contact through standard CERN channels
+- External collaborators: Use repository issue system
 
 ---
 
-**Developed for CERN CMS Safety Team**
+## 🏆 Acknowledgments
+
+**Development Team:**
+- **Win Thawdar Aung** - Lead Developer, CMS Safety Team Summer Student 2025
+- **CERN CMS Safety Team** - Requirements, testing, and validation
+- **CERN HSE Department** - Safety standards and documentation integration
+
+**Technology Partners:**
+- **Electron Framework** - Cross-platform desktop application
+- **React Ecosystem** - Modern user interface development
+- **Python-docx** - Professional document generation
+- **CERN IT Services** - Development infrastructure and support
+
+**Special Thanks:**
+- CERN Summer Student Programme 2025
+- CMS Collaboration Safety Officers
+- HSE Documentation and Standards Team
+- Beta testers and early adopters
+
+---
+
+## 📄 License & Usage
+
+This application is developed for **CERN CMS Safety activities**. 
+
+**Usage Rights:**
+- ✅ **CERN Personnel**: Full usage rights for safety activities
+- ✅ **CMS Collaboration**: Usage for experiment-related safety work
+- ✅ **Research Purposes**: Academic and research applications
+- ❓ **Commercial Use**: Contact CERN for licensing information
+
+**Distribution:**
+- Internal CERN distribution: Unrestricted
+- External distribution: Follow CERN intellectual property policies
+- Modifications: Contributions welcome through standard channels
+
+**Compliance:**
+- Follows CERN safety standards and procedures
+- Integrates with official HSE documentation
+- Maintains data privacy and security requirements
+
+---
+
+**🌟 Developed with ❤️ for the CERN CMS Safety Team**  
+*Enhancing safety through technology and innovation*

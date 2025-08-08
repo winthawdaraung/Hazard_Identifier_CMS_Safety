@@ -15,7 +15,8 @@ const ActionButtons = ({
     switch (currentStep) {
       case 1:
         return formData.title && formData.creatorName && formData.creatorDepartment && 
-               formData.responsiblePerson && formData.startDate && formData.building;
+               formData.responsiblePerson && formData.startDate && formData.building && 
+               formData.activityDescription;
       case 2:
         return formData.selectedHazards && formData.selectedHazards.length > 0;
       default:

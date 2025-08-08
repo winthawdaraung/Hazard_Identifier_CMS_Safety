@@ -10,7 +10,7 @@ lerna-debug.log*
 dist/
 dist-ssr/
 dist-builds/
-release-builds/
+app/
 out/
 
 # Environment files

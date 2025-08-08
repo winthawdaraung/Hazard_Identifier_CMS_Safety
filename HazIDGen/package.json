@@ -13,16 +13,20 @@
     "preview": "vite preview",
     "electron-dev-simple": "cross-env NODE_ENV=development electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
-    "package-win": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=win32 --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.ico\"",
-    "package-mac": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=darwin --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.icns\"",
-    "package-linux": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=linux --arch=x64 --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
-    "package-all": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --all --out=release-builds --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
+    "package-win": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=win32 --arch=x64 --out=app --overwrite --icon=\"src/assets/Logo CMS Safety.ico\"",
+    "package-mac": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=darwin --arch=x64 --out=app --overwrite --icon=\"src/assets/Logo CMS Safety.icns\"",
+    "package-linux": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --platform=linux --arch=x64 --out=app --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
+    "package-all": "npm run build && npm run build-python && npx electron-packager . \"HazID Generator\" --all --out=app --overwrite --icon=\"src/assets/Logo CMS Safety.png\"",
     "start": "npm run build && npm run electron-dev-simple",
-    "clean": "rimraf dist release-builds",
+    "clean": "rimraf dist app",
     "rebuild": "npm run clean && npm run build && npm run build-python",
     "rebuild-win": "npm run clean && npm run package-win",
     "rebuild-mac": "npm run clean && npm run package-mac",
-    "rebuild-linux": "npm run clean && npm run package-linux"
+    "rebuild-linux": "npm run clean && npm run package-linux",
+    "dist": "npm run build && npm run build-python && npx electron-builder",
+    "dist-win": "npm run build && npm run build-python && npx electron-builder --win",
+    "dist-msi": "npm run build && npm run build-python && npx electron-builder --win nsis",
+    "dist-all": "npm run build && npm run build-python && npx electron-builder --win --mac --linux"
   },
   "dependencies": {
     "docx": "^7.3.0",
@@ -43,11 +47,79 @@
     "concurrently": "^8.2.2",
     "cross-env": "^10.0.0",
     "electron": "^25.3.1",
+    "electron-builder": "^24.13.3",
     "electron-packager": "^17.1.2",
     "postcss": "^8.4.27",
     "rimraf": "^5.0.10",
     "tailwindcss": "^3.3.3",
     "vite": "^4.4.5",
     "wait-on": "^7.0.1"
+  },
+  "build": {
+    "appId": "ch.cern.cms.hazid-generator",
+    "productName": "HazID Generator",
+    "directories": {
+      "output": "installers"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "src/assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/assets/Logo CMS Safety.ico",
+      "publisherName": "CERN CMS Safety Team",
+      "verifyUpdateCodeSignature": false,
+      "sign": null
+    },
+    "msi": {
+      "oneClick": false,
+      "perMachine": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "HazID Generator"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "HazID Generator",
+      "installerIcon": "src/assets/Logo CMS Safety.ico",
+      "uninstallerIcon": "src/assets/Logo CMS Safety.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "src/assets/Logo CMS Safety.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "src/assets/Logo CMS Safety.png",
+      "category": "Office"
+    }
   }
 }

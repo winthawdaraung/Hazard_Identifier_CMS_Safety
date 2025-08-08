@@ -58,19 +58,38 @@ export const loadHazardData = async () => {
         const hseLinksMap = {};
         const hazardDefinitionsMap = {};
         if (hseLinksResult && hseLinksResult.success && Array.isArray(hseLinksResult.data)) {
+          // Create mapping function to handle spelling/formatting differences
+          const normalizeHazardName = (name) => {
+            return name.toLowerCase()
+              .replace(/non-ionizing/g, 'non ionizing')  // Handle hyphen vs space
+              .replace(/other hazards/g, 'others')  // Map "other hazards" to "others"
+              .replace(/\s+/g, ' ')  // Normalize multiple spaces
+              .trim();
+          };
+          
           // Process HSE sheet data for link mapping
           hseLinksResult.data.forEach(item => {
             // Map hazard codes to their corresponding HSE documentation links
-            const catKey = String(item['Hazard Category'] || item['Category'] || '').trim().toLowerCase();
+            const originalCatKey = String(item['Hazard Category'] || item['Category'] || '').trim().toLowerCase();
+            const normalizedCatKey = normalizeHazardName(originalCatKey);
             const definition = String(item['Definition'] || '').trim();
             const link = String(item['HSE Link(s)'] || item['HSE Link'] || '').trim();
-            if (catKey) {
-              if (link) {
-                hseLinksMap[catKey] = link;
+            
+            if (originalCatKey) {
+              // Store under both original and normalized keys
+              const keys = [originalCatKey];
+              if (normalizedCatKey !== originalCatKey) {
+                keys.push(normalizedCatKey);
               }
-              if (definition) {
-                hazardDefinitionsMap[catKey] = definition;
-              }
+              
+              keys.forEach(key => {
+                if (link) {
+                  hseLinksMap[key] = link;
+                }
+                if (definition) {
+                  hazardDefinitionsMap[key] = definition;
+                }
+              });
             }
           });
           // HSE links mapping completed
@@ -87,15 +106,19 @@ export const loadHazardData = async () => {
 
             if (category && category !== 'Hazards' && specificHazard) {
               const key = `${category}|${specificHazard}`;
-              const lowerKey = category.toLowerCase();
+              const lowerKey = category.toLowerCase().trim();
+              const normalizedKey = lowerKey
+                .replace(/non-ionizing/g, 'non ionizing')
+                .replace(/other hazards/g, 'others')
+                .replace(/\s+/g, ' ');
 
               if (!groupedData[key]) {
                 groupedData[key] = {
                   Category: category,
                   'Specific Hazard': specificHazard,
                   'Safety Measures': safetyMeasures,
-                  'HSE Link': hseLinksMap[lowerKey] || '',
-                  'Definition': hazardDefinitionsMap[lowerKey] || '',
+                  'HSE Link': hseLinksMap[normalizedKey] || hseLinksMap[lowerKey] || '',
+                  'Definition': hazardDefinitionsMap[normalizedKey] || hazardDefinitionsMap[lowerKey] || '',
                   Icon: '❓'
                 };
               } else {

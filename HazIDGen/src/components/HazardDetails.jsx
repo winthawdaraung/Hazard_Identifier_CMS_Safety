@@ -274,13 +274,15 @@ const HazardDetails = ({ formData, updateHazardDetails, hazardData, selectedHaza
                             {isSelected && (
                                <div className="space-y-4 mt-4">
                                  <div>
-                                   <label className="form-label">Details (Commercial name, quantity, type of use, etc.)</label>
+                                   <label className="form-label">Details</label>
                                    <textarea
                                      className="form-textarea"
                                      rows={3}
                                      value={details}
                                      onChange={(e) => handleDetailsChange(hazardCategory, subHazard.id, 'details', e.target.value)}
-                                     placeholder="Provide specific details about this hazard in your activity..."
+                                     placeholder="Provide specific details about this hazard in your activity...
+For Chemical hazards, include commercial name, quantity, if liquid solid or gas, type of use.
+For Mechanical hazards, include the notes, drawings, quantity, etc."
                                    />
                                  </div>
                                  
