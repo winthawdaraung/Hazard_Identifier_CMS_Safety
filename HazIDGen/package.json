@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build-python": "cd public && pyinstaller generate_docx.py --onefile --noconsole --distpath ../dist && cd ..",
+    "build-python": "cd public && python -m PyInstaller generate_docx.py --onefile --noconsole --distpath ../dist && cd ..",
     "preview": "vite preview",
     "electron-dev-simple": "cross-env NODE_ENV=development electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
